@@ -36,12 +36,14 @@ class BaseModel:
 
     def _get_field(self, field: str):
         return fetch_value(
-            cursor.execute(f"SELECT {field} FROM {self._table_name} WHERE id={self.id}")
+            cursor.execute(
+                f"SELECT {field} FROM {self._table_name} WHERE id=?", [self.id]
+            )
         )
 
     def _set_field(self, field: str, value):
         cursor.execute(
-            f"UPDATE {self._table_name} SET {field}=? WHERE id={self.id}", [value]
+            f"UPDATE {self._table_name} SET {field}=? WHERE id=?", [value, self.id]
         )
         database.commit()
 
@@ -107,14 +109,14 @@ class User(BaseModel):
 
     def _after_change_role(self):
         if self.role == UserRole.TEACHER and self.class_id is None:
-            self.clas = Class(
-                fetch_value(
-                    cursor.execute(
-                        "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
-                        [self.id, generate_class_code()],
-                    )
+            class_id = fetch_value(
+                cursor.execute(
+                    "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
+                    [self.id, generate_class_code()],
                 )
             )
+            database.commit()
+            self.clas = Class(class_id)
 
     def _validate_grade(self, grade: int):
         if grade < 7 or 11 < grade:
