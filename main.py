@@ -4,12 +4,9 @@ from database import (
     NotFoundError,
     User,
     ValidationError,
-    database,
 )
-from database_class import create_class
-from database_user import get_user_state, set_user_class, set_user_number_in_class
 from migration import apply_all_migrations
-from model import UserRole, UserState
+from model import UserRole
 
 apply_all_migrations()
 

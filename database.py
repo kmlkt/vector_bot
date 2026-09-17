@@ -150,7 +150,7 @@ class Class(BaseModel):
         return (
             fetch_value(
                 cursor.execute(
-                    "SELECT COUNT(id) FROM students WHERE class_id=? AND number_in_class=?",
+                    "SELECT COUNT(id) FROM users WHERE class_id=? AND number_in_class=?",
                     [self.id, number_in_class],
                 )
             )

@@ -1,4 +1,3 @@
-import itertools
 import random
 from enum import StrEnum, auto
 
