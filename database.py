@@ -154,6 +154,10 @@ class Class(BaseModel):
         if grade < 7 or 11 < grade:
             raise ValidationError()
 
+    def _validate_size(self, size: int):
+        if size < 1:
+            raise ValidationError()
+
     def student_number_taken(self, number_in_class: int) -> bool:
         return (
             fetch_value(
