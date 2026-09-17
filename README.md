@@ -1,3 +1,22 @@
+# Использование data layer
+
+Сущности представлены классами. Нормальный конструктор принимает id. При изменении поля меняется значение в базе, при чтении поля читается значение из базы. Для получения сущности не по id используются статичные методы `User.from_max_id` (если такого юзера нет, он будет создан) и `Class.from_code`
+
+```python
+t = User.from_max_id("t")
+# При задании роли teacher класс создаётся автоматически, задаётся рандомный код класса
+t.role = UserRole.TEACHER
+t.clas.grade = 8
+t.clas.size = 10
+
+class_code = t.clas.code
+
+s1 = User.from_max_id("s1")
+s1.role = UserRole.STUDENT
+s1.clas = Class.from_code(class_code)
+s1.number_in_class = 1
+```
+
 # Модель данных
 
 ```sql
