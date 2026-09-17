@@ -123,6 +123,8 @@ class User(BaseModel):
             raise ValidationError()
 
     def _validate_number_in_class(self, number_in_class: int):
+        if number_in_class == self.number_in_class:
+            return
         if number_in_class < 1 or self.clas.size < number_in_class:
             raise ValidationError()
         if self.clas.student_number_taken(number_in_class):
@@ -147,6 +149,10 @@ class Class(BaseModel):
     @property
     def teacher(self) -> User:
         return User(self.teacher_id)
+
+    def _validate_grade(self, grade: int):
+        if grade < 7 or 11 < grade:
+            raise ValidationError()
 
     def student_number_taken(self, number_in_class: int) -> bool:
         return (
