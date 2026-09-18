@@ -20,6 +20,14 @@ class EventType(StrEnum):
     ANSWERED = auto()
 
 
+class TaskAxis(StrEnum):
+    H = "H"
+    T = "T"
+    S = "S"
+    I = "I"
+    N = "N"
+
+
 _CLASS_CODE_CHARS = "ABCDEFGHKLMNPRSTUVXYZ23456789456789456789456789456789456789"
 
 

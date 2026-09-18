@@ -1,7 +1,10 @@
+import datetime
 import sqlite3
-from datetime import datetime
+from dataclasses import dataclass
+from math import floor
 
 from model import EventType, UserRole, UserState, generate_class_code
+from tasks import Task
 
 database = sqlite3.connect("./database.db")
 cursor = database.cursor()
@@ -60,6 +63,14 @@ class AlreadyExistsError(Exception):
     pass
 
 
+class OperationNotAllowedError(Exception):
+    pass
+
+
+class NotReadyError(Exception):
+    pass
+
+
 class User(BaseModel):
     def __init__(self, id: int):
         super().__init__(
@@ -91,44 +102,100 @@ class User(BaseModel):
         database.commit()
         return User(id)
 
-    role: UserRole
+    role: UserRole | None
     state: UserState
-    grade: int
-    class_id: int
-    number_in_class: int
+    grade: int | None
+    class_id: int | None
+    number_in_class: int | None
 
     @property
     def clas(self) -> "Class":
+        self.require_role(UserRole.STUDENT)
+        if self.class_id is None:
+            raise NotReadyError()
         return Class(self.class_id)
 
     @clas.setter
     def clas(self, c: "Class"):
+        self.require_role(UserRole.STUDENT)
         self.class_id = c.id
-        if self.role == UserRole.STUDENT:
-            self.grade = c.grade
+        self.grade = c.grade
 
-    def _after_change_role(self):
-        if self.role == UserRole.TEACHER and self.class_id is None:
-            class_id = fetch_value(
+    @property
+    def classes(self) -> "list[Class]":
+        self.require_role(UserRole.TEACHER)
+        return [
+            Class(id)
+            for (id,) in cursor.execute(
+                "SELECT id FROM classes WHERE teacher_id=?", [self.id]
+            )
+        ]
+
+    @property
+    def current_created_class(self) -> "Class":
+        self.require_role(UserRole.TEACHER)
+        return Class(
+            fetch_value(
                 cursor.execute(
-                    "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
-                    [self.id, generate_class_code()],
+                    "SELECT id FROM classes WHERE teacher_id=? AND size IS NULL",
+                    [self.id],
                 )
             )
-            database.commit()
-            self.clas = Class(class_id)
+        )
+
+    @property
+    def pending_buttons(self) -> "list[Button]":
+        return [
+            Button(
+                payload,
+                None
+                if expires_at is None
+                else datetime.datetime.fromisoformat(expires_at),
+            )
+            for (payload, expires_at) in cursor.execute(
+                "SELECT payload, expires_at FROM pending_buttons WHERE user_id=?",
+                [self.id],
+            )
+        ]
+
+    @pending_buttons.setter
+    def pending_buttons(self, buttons: "list[Button]"):
+        cursor.execute(
+            "DELETE FROM pending_buttons WHERE user_id=?",
+            [self.id],
+        )
+        cursor.executemany(
+            "INSERT INTO pending_buttons (user_id, payload, expires_at) VALUES (?, ?, ?)",
+            (
+                (
+                    self.id,
+                    x.payload,
+                    None if x.expires_at is None else x.expires_at.isoformat(),
+                )
+                for x in buttons
+            ),
+        )
+        database.commit()
 
     def _validate_grade(self, grade: int):
+        self.require_role(UserRole.STUDENT)
         if grade < 7 or 11 < grade:
             raise ValidationError()
 
     def _validate_number_in_class(self, number_in_class: int):
+        self.require_role(UserRole.STUDENT)
         if number_in_class == self.number_in_class:
+            return
+        if self.clas.size is None:
             return
         if number_in_class < 1 or self.clas.size < number_in_class:
             raise ValidationError()
         if self.clas.student_number_taken(number_in_class):
             raise AlreadyExistsError()
+
+    def require_role(self, role: UserRole):
+        if self.role != role:
+            raise OperationNotAllowedError()
 
 
 class Class(BaseModel):
@@ -138,12 +205,29 @@ class Class(BaseModel):
     @staticmethod
     def from_code(code: str) -> "Class":
         return Class(
-            fetch_value(cursor.execute("SELECT id FROM classes WHERE code=?", [code]))
+            fetch_value(
+                cursor.execute(
+                    "SELECT id FROM classes WHERE code=? AND grade IS NOT NULL AND size IS NOT NULL",
+                    [code],
+                )
+            )
         )
 
+    @staticmethod
+    def create(user: User) -> "Class":
+        user.require_role(UserRole.TEACHER)
+        class_id = fetch_value(
+            cursor.execute(
+                "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
+                [user.id, generate_class_code()],
+            )
+        )
+        database.commit()
+        return Class(class_id)
+
     code: str
-    grade: int
-    size: int
+    grade: int | None
+    size: int | None
     teacher_id: int
 
     @property
@@ -174,19 +258,74 @@ class Event(BaseModel):
     def __init__(self, id: int):
         super().__init__("events", id)
 
+    @staticmethod
+    def create_shown(user: User, tasks: list[Task]) -> "Event":
+        user.require_role(UserRole.STUDENT)
+        id = fetch_value(
+            cursor.execute(
+                "INSERT INTO events (user_id, type, task_id) VALUES (?, 'shown', ?) RETURNING id",
+                [user.id, ",".join(x.id for x in tasks)],
+            )
+        )
+        database.commit()
+        return Event(id)
+
+    @staticmethod
+    def create_chosen(user: User, task: Task) -> "Event":
+        user.require_role(UserRole.STUDENT)
+        latency_ms = Event._latency_since(user, task, EventType.SHOWN)
+        id = fetch_value(
+            cursor.execute(
+                "INSERT INTO events (user_id, type, task_id, latency_ms) VALUES (?, 'chosen', ?, ?) RETURNING id",
+                [user.id, task.id, latency_ms],
+            )
+        )
+        database.commit()
+        return Event(id)
+
+    @staticmethod
+    def create_answered(user: User, task: Task, answer: int) -> "Event":
+        user.require_role(UserRole.STUDENT)
+        is_correct = None if task.correct is None else (task.correct == answer)
+        latency_ms = Event._latency_since(user, task, EventType.CHOSEN)
+        id = fetch_value(
+            cursor.execute(
+                "INSERT INTO events (user_id, type, task_id, answer, is_correct, latency_ms) "
+                + "VALUES (?, 'answered', ?, ?, ?, ?) RETURNING id",
+                [user.id, task.id, answer, is_correct, latency_ms],
+            )
+        )
+        database.commit()
+        return Event(id)
+
     user_id: int
     type: EventType
     task_id: str
-    answer: int
-    is_correct: bool
-    latensy_ms: int
-    pending_buttons: str
-    payload: str
-    expires_at: datetime
+    answer: int | None
+    is_correct: bool | None
+    latency_ms: int | None
 
     @property
     def user(self) -> User:
         return User(self.user_id)
+
+    @staticmethod
+    def _latency_since(user: User, task: Task, type: EventType) -> int:
+        previous_created_at = datetime.datetime.fromisoformat(
+            fetch_value(
+                cursor.execute(
+                    "SELECT MAX(created_at) FROM events WHERE user_id=? AND task_id LIKE ? AND type=?",
+                    [user.id, f"%{task.id}%", type],
+                )
+            )
+            + "+00:00"
+        )
+        return floor(
+            (
+                datetime.datetime.now(tz=datetime.UTC) - previous_created_at
+            ).total_seconds()
+            * 1000
+        )
 
 
 def fetch_value(cursor: sqlite3.Cursor):
@@ -194,3 +333,9 @@ def fetch_value(cursor: sqlite3.Cursor):
     if row is None:
         raise NotFoundError
     return row[0]
+
+
+@dataclass
+class Button:
+    payload: str
+    expires_at: datetime.datetime | None = None
