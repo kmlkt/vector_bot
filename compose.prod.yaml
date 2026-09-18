@@ -1,0 +1,6 @@
+services:
+  app:
+    image: ghcr.io/kmlkt/vector_bot:${APP_VERSION}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
