@@ -1,7 +1,9 @@
+import datetime
 import sqlite3
-from datetime import datetime
+from math import floor
 
 from model import EventType, UserRole, UserState, generate_class_code
+from tasks import Task
 
 database = sqlite3.connect("./database.db")
 cursor = database.cursor()
@@ -59,11 +61,14 @@ class NotFoundError(Exception):
 class AlreadyExistsError(Exception):
     pass
 
+
 class OperationNotAllowedError(Exception):
     pass
 
+
 class NotReadyError(Exception):
     pass
+
 
 class User(BaseModel):
     def __init__(self, id: int):
@@ -104,31 +109,41 @@ class User(BaseModel):
 
     @property
     def clas(self) -> "Class":
-        self._require_role(UserRole.STUDENT)
+        self.require_role(UserRole.STUDENT)
         if self.class_id is None:
             raise NotReadyError()
         return Class(self.class_id)
 
     @clas.setter
     def clas(self, c: "Class"):
-        self._require_role(UserRole.STUDENT)
+        self.require_role(UserRole.STUDENT)
         self.class_id = c.id
         self.grade = c.grade
 
-
     @property
     def classes(self) -> "list[Class]":
-        self._require_role(UserRole.TEACHER)
-        return [Class(id) for (id,) in cursor.execute("SELECT id FROM classes WHERE teacher_id=?", [self.id])]
+        self.require_role(UserRole.TEACHER)
+        return [
+            Class(id)
+            for (id,) in cursor.execute(
+                "SELECT id FROM classes WHERE teacher_id=?", [self.id]
+            )
+        ]
 
     @property
     def current_created_class(self) -> "Class":
-        self._require_role(UserRole.TEACHER)
-        return Class(fetch_value(cursor.execute("SELECT id FROM classes WHERE teacher_id=? AND size IS NULL", [self.id])))
-
+        self.require_role(UserRole.TEACHER)
+        return Class(
+            fetch_value(
+                cursor.execute(
+                    "SELECT id FROM classes WHERE teacher_id=? AND size IS NULL",
+                    [self.id],
+                )
+            )
+        )
 
     def create_class(self) -> "Class":
-        self._require_role(UserRole.TEACHER)
+        self.require_role(UserRole.TEACHER)
         class_id = fetch_value(
             cursor.execute(
                 "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
@@ -138,14 +153,13 @@ class User(BaseModel):
         database.commit()
         return Class(class_id)
 
-
     def _validate_grade(self, grade: int):
-        self._require_role(UserRole.STUDENT)
+        self.require_role(UserRole.STUDENT)
         if grade < 7 or 11 < grade:
             raise ValidationError()
 
     def _validate_number_in_class(self, number_in_class: int):
-        self._require_role(UserRole.STUDENT)
+        self.require_role(UserRole.STUDENT)
         if number_in_class == self.number_in_class:
             return
         if self.clas.size is None:
@@ -155,7 +169,7 @@ class User(BaseModel):
         if self.clas.student_number_taken(number_in_class):
             raise AlreadyExistsError()
 
-    def _require_role(self, role: UserRole):
+    def require_role(self, role: UserRole):
         if self.role != role:
             raise OperationNotAllowedError()
 
@@ -167,7 +181,12 @@ class Class(BaseModel):
     @staticmethod
     def from_code(code: str) -> "Class":
         return Class(
-            fetch_value(cursor.execute("SELECT id FROM classes WHERE code=? AND grade IS NOT NULL AND size IS NOT NULL", [code]))
+            fetch_value(
+                cursor.execute(
+                    "SELECT id FROM classes WHERE code=? AND grade IS NOT NULL AND size IS NOT NULL",
+                    [code],
+                )
+            )
         )
 
     code: str
@@ -203,16 +222,74 @@ class Event(BaseModel):
     def __init__(self, id: int):
         super().__init__("events", id)
 
+    @staticmethod
+    def create_shown(user: User, tasks: list[Task]) -> "Event":
+        user.require_role(UserRole.STUDENT)
+        id = fetch_value(
+            cursor.execute(
+                "INSERT INTO events (user_id, type, task_id) VALUES (?, 'shown', ?) RETURNING id",
+                [user.id, ",".join(x.id for x in tasks)],
+            )
+        )
+        database.commit()
+        return Event(id)
+
+    @staticmethod
+    def create_chosen(user: User, task: Task) -> "Event":
+        user.require_role(UserRole.STUDENT)
+        latency_ms = Event._latency_since(user, task, EventType.SHOWN)
+        id = fetch_value(
+            cursor.execute(
+                "INSERT INTO events (user_id, type, task_id, latency_ms) VALUES (?, 'chosen', ?, ?) RETURNING id",
+                [user.id, task.id, latency_ms],
+            )
+        )
+        database.commit()
+        return Event(id)
+
+    @staticmethod
+    def create_answered(user: User, task: Task, answer: int) -> "Event":
+        user.require_role(UserRole.STUDENT)
+        is_correct = None if task.correct is None else (task.correct == answer)
+        latency_ms = Event._latency_since(user, task, EventType.CHOSEN)
+        id = fetch_value(
+            cursor.execute(
+                "INSERT INTO events (user_id, type, task_id, answer, is_correct, latency_ms) "
+                + "VALUES (?, 'answered', ?, ?, ?, ?) RETURNING id",
+                [user.id, task.id, answer, is_correct, latency_ms],
+            )
+        )
+        database.commit()
+        return Event(id)
+
     user_id: int
     type: EventType
     task_id: str
-    answer: int
-    is_correct: bool
-    latency_ms: int
+    answer: int | None
+    is_correct: bool | None
+    latency_ms: int | None
 
     @property
     def user(self) -> User:
         return User(self.user_id)
+
+    @staticmethod
+    def _latency_since(user: User, task: Task, type: EventType) -> int:
+        previous_created_at = datetime.datetime.fromisoformat(
+            fetch_value(
+                cursor.execute(
+                    "SELECT MAX(created_at) FROM events WHERE user_id=? AND task_id LIKE ? AND type=?",
+                    [user.id, f"%{task.id}%", type],
+                )
+            )
+            + "+00:00"
+        )
+        return floor(
+            (
+                datetime.datetime.now(tz=datetime.UTC) - previous_created_at
+            ).total_seconds()
+            * 1000
+        )
 
 
 def fetch_value(cursor: sqlite3.Cursor):

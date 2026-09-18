@@ -3,6 +3,7 @@ import pytest
 from database import (
     AlreadyExistsError,
     Class,
+    Event,
     NotFoundError,
     User,
     ValidationError,
@@ -10,6 +11,7 @@ from database import (
 )
 from migration import apply_all_migrations
 from model import UserRole
+from tasks import Task
 
 
 @pytest.fixture(autouse=True)
@@ -98,3 +100,37 @@ def test_user_set_taken_number_in_class(teacher: User, student: User):
     s2.clas = Class.from_code(clas.code)
     with pytest.raises(AlreadyExistsError):
         s2.number_in_class = 1
+
+
+def test_create_event_shown(student: User):
+    Event.create_shown(
+        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+    )
+
+
+def test_create_event_chosen(student: User):
+    Event.create_shown(
+        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+    )
+    e2 = Event.create_chosen(student, Task.by_id("S-001"))
+    assert e2.latency_ms is not None
+
+
+def test_create_event_answered_correct(student: User):
+    Event.create_shown(
+        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+    )
+    Event.create_chosen(student, Task.by_id("S-001"))
+    e3 = Event.create_answered(student, Task.by_id("S-001"), 1)
+    assert e3.latency_ms is not None
+    assert e3.is_correct
+
+
+def test_create_event_answered_incorrect(student: User):
+    Event.create_shown(
+        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+    )
+    Event.create_chosen(student, Task.by_id("S-001"))
+    e3 = Event.create_answered(student, Task.by_id("S-001"), 2)
+    assert e3.latency_ms is not None
+    assert not e3.is_correct
