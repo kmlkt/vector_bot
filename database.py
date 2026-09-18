@@ -59,6 +59,11 @@ class NotFoundError(Exception):
 class AlreadyExistsError(Exception):
     pass
 
+class OperationNotAllowedError(Exception):
+    pass
+
+class NotReadyError(Exception):
+    pass
 
 class User(BaseModel):
     def __init__(self, id: int):
@@ -91,44 +96,66 @@ class User(BaseModel):
         database.commit()
         return User(id)
 
-    role: UserRole
+    role: UserRole | None
     state: UserState
-    grade: int
-    class_id: int
-    number_in_class: int
+    grade: int | None
+    class_id: int | None
+    number_in_class: int | None
 
     @property
     def clas(self) -> "Class":
+        self._require_role(UserRole.STUDENT)
+        if self.class_id is None:
+            raise NotReadyError()
         return Class(self.class_id)
 
     @clas.setter
     def clas(self, c: "Class"):
+        self._require_role(UserRole.STUDENT)
         self.class_id = c.id
-        if self.role == UserRole.STUDENT:
-            self.grade = c.grade
+        self.grade = c.grade
 
-    def _after_change_role(self):
-        if self.role == UserRole.TEACHER and self.class_id is None:
-            class_id = fetch_value(
-                cursor.execute(
-                    "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
-                    [self.id, generate_class_code()],
-                )
+
+    @property
+    def classes(self) -> "list[Class]":
+        self._require_role(UserRole.TEACHER)
+        return [Class(id) for (id,) in cursor.execute("SELECT id FROM classes WHERE teacher_id=?", [self.id])]
+
+    @property
+    def current_created_class(self) -> "Class":
+        self._require_role(UserRole.TEACHER)
+        return Class(fetch_value(cursor.execute("SELECT id FROM classes WHERE teacher_id=? AND size IS NULL", [self.id])))
+
+
+    def create_class(self) -> "Class":
+        self._require_role(UserRole.TEACHER)
+        class_id = fetch_value(
+            cursor.execute(
+                "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
+                [self.id, generate_class_code()],
             )
-            database.commit()
-            self.clas = Class(class_id)
+        )
+        database.commit()
+        return Class(class_id)
+
 
     def _validate_grade(self, grade: int):
+        self._require_role(UserRole.STUDENT)
         if grade < 7 or 11 < grade:
             raise ValidationError()
 
     def _validate_number_in_class(self, number_in_class: int):
+        self._require_role(UserRole.STUDENT)
         if number_in_class == self.number_in_class:
             return
         if number_in_class < 1 or self.clas.size < number_in_class:
             raise ValidationError()
         if self.clas.student_number_taken(number_in_class):
             raise AlreadyExistsError()
+
+    def _require_role(self, role: UserRole):
+        if self.role != role:
+            raise OperationNotAllowedError()
 
 
 class Class(BaseModel):
@@ -179,10 +206,7 @@ class Event(BaseModel):
     task_id: str
     answer: int
     is_correct: bool
-    latensy_ms: int
-    pending_buttons: str
-    payload: str
-    expires_at: datetime
+    latency_ms: int
 
     @property
     def user(self) -> User:
