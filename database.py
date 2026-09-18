@@ -143,17 +143,6 @@ class User(BaseModel):
             )
         )
 
-    def create_class(self) -> "Class":
-        self.require_role(UserRole.TEACHER)
-        class_id = fetch_value(
-            cursor.execute(
-                "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
-                [self.id, generate_class_code()],
-            )
-        )
-        database.commit()
-        return Class(class_id)
-
     @property
     def pending_buttons(self) -> "list[Button]":
         return [
@@ -223,6 +212,18 @@ class Class(BaseModel):
                 )
             )
         )
+
+    @staticmethod
+    def create(user: User) -> "Class":
+        user.require_role(UserRole.TEACHER)
+        class_id = fetch_value(
+            cursor.execute(
+                "INSERT INTO classes (teacher_id, code) VALUES (?, ?) RETURNING id",
+                [user.id, generate_class_code()],
+            )
+        )
+        database.commit()
+        return Class(class_id)
 
     code: str
     grade: int | None

@@ -47,26 +47,26 @@ def student() -> User:
 
 
 def test_current_class_is_last(teacher: User):
-    c1 = teacher.create_class()
+    c1 = Class.create(teacher)
     assert teacher.current_created_class.id == c1.id
 
 
 def test_current_class_disappears(teacher: User):
-    teacher.create_class()
+    Class.create(teacher)
     teacher.current_created_class.size = 10
     with pytest.raises(NotFoundError):
         _ = teacher.current_created_class
 
 
 def test_current_class_changes(teacher: User):
-    teacher.create_class()
+    Class.create(teacher)
     teacher.current_created_class.size = 10
-    c2 = teacher.create_class()
+    c2 = Class.create(teacher)
     assert teacher.current_created_class.id == c2.id
 
 
 def test_normal_user(teacher: User, student: User):
-    teacher.create_class()
+    Class.create(teacher)
     clas = teacher.current_created_class
     clas.grade = 7
     clas.size = 10
@@ -76,7 +76,7 @@ def test_normal_user(teacher: User, student: User):
 
 
 def test_user_set_unready_class(teacher: User, student: User):
-    teacher.create_class()
+    Class.create(teacher)
     clas = teacher.current_created_class
     with pytest.raises(NotFoundError):
         student.clas = Class.from_code(clas.code)
@@ -88,7 +88,7 @@ def test_user_set_incorrect_class(student: User):
 
 
 def test_user_set_incorrect_number_in_class(teacher: User, student: User):
-    teacher.create_class()
+    Class.create(teacher)
     clas = teacher.current_created_class
     clas.grade = 7
     clas.size = 10
@@ -100,7 +100,7 @@ def test_user_set_incorrect_number_in_class(teacher: User, student: User):
 
 
 def test_user_set_taken_number_in_class(teacher: User, student: User):
-    teacher.create_class()
+    Class.create(teacher)
     clas = teacher.current_created_class
     clas.grade = 7
     clas.size = 10
