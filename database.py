@@ -1,5 +1,6 @@
 import datetime
 import sqlite3
+from dataclasses import dataclass
 from math import floor
 
 from model import EventType, UserRole, UserState, generate_class_code
@@ -153,6 +154,40 @@ class User(BaseModel):
         database.commit()
         return Class(class_id)
 
+    @property
+    def pending_buttons(self) -> "list[Button]":
+        return [
+            Button(
+                payload,
+                None
+                if expires_at is None
+                else datetime.datetime.fromisoformat(expires_at),
+            )
+            for (payload, expires_at) in cursor.execute(
+                "SELECT payload, expires_at FROM pending_buttons WHERE user_id=?",
+                [self.id],
+            )
+        ]
+
+    @pending_buttons.setter
+    def pending_buttons(self, buttons: "list[Button]"):
+        cursor.execute(
+            "DELETE FROM pending_buttons WHERE user_id=?",
+            [self.id],
+        )
+        cursor.executemany(
+            "INSERT INTO pending_buttons (user_id, payload, expires_at) VALUES (?, ?, ?)",
+            (
+                (
+                    self.id,
+                    x.payload,
+                    None if x.expires_at is None else x.expires_at.isoformat(),
+                )
+                for x in buttons
+            ),
+        )
+        database.commit()
+
     def _validate_grade(self, grade: int):
         self.require_role(UserRole.STUDENT)
         if grade < 7 or 11 < grade:
@@ -299,9 +334,7 @@ def fetch_value(cursor: sqlite3.Cursor):
     return row[0]
 
 
-def erase_database():
-    """РЕАЛЬНО ЧИСТИТ БАЗУ. ТОЛЬКО ДЛЯ ТЕСТОВ"""
-    database.execute("DELETE FROM users WHERE 1=1")
-    database.execute("DELETE FROM classes WHERE 1=1")
-    database.execute("DELETE FROM events WHERE 1=1")
-    database.commit()
+@dataclass
+class Button:
+    payload: str
+    expires_at: datetime.datetime | None = None

@@ -1,13 +1,17 @@
+import datetime
+import os
+import sqlite3
+
 import pytest
 
 from database import (
     AlreadyExistsError,
+    Button,
     Class,
     Event,
     NotFoundError,
     User,
     ValidationError,
-    erase_database,
 )
 from migration import apply_all_migrations
 from model import UserRole
@@ -15,9 +19,17 @@ from tasks import Task
 
 
 @pytest.fixture(autouse=True)
-def prepare_database():
+def prepare_database(monkeypatch: pytest.MonkeyPatch):
+    test_db_path = "test_database.db"
+    if os.path.exists(test_db_path):
+        os.remove(test_db_path)
+    test_db = sqlite3.connect(test_db_path)
+    test_cursor = test_db.cursor()
+    monkeypatch.setattr("database.database", test_db)
+    monkeypatch.setattr("database.cursor", test_cursor)
     apply_all_migrations()
-    erase_database()
+    yield
+    test_db.close()
 
 
 @pytest.fixture
@@ -134,3 +146,31 @@ def test_create_event_answered_incorrect(student: User):
     e3 = Event.create_answered(student, Task.by_id("S-001"), 2)
     assert e3.latency_ms is not None
     assert not e3.is_correct
+
+
+def test_set_pending_buttons(student: User):
+    student.pending_buttons = [Button(payload="asas"), Button(payload="abab")]
+    buttons = student.pending_buttons
+    assert len(buttons) == 2
+    assert buttons[0].payload == "asas" or buttons[1].payload == "asas"
+    assert buttons[0].expires_at is None
+    assert buttons[1].payload == "abab" or buttons[0].payload == "abab"
+    assert buttons[1].expires_at is None
+
+
+def test_set_pending_buttons_with_date(student: User):
+    expires_at = datetime.datetime(2026, 9, 20, tzinfo=datetime.UTC)
+    student.pending_buttons = [Button(payload="asas", expires_at=expires_at)]
+    buttons = student.pending_buttons
+    assert len(buttons) == 1
+    assert buttons[0].expires_at == expires_at
+
+
+def test_change_pending_buttons(student: User):
+    student.pending_buttons = [Button(payload="asas"), Button(payload="abab")]
+    assert len(student.pending_buttons) == 2
+
+    student.pending_buttons = [Button(payload="qwer")]
+    buttons = student.pending_buttons
+    assert len(buttons) == 1
+    assert buttons[0].payload == "qwer"
