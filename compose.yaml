@@ -3,5 +3,7 @@ services:
     build: .
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
+    volumes:
+      - ./storage:/app/storage
     ports:
       - "8080:8080"

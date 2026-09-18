@@ -6,7 +6,7 @@ from math import floor
 from model import EventType, UserRole, UserState, generate_class_code
 from tasks import Task
 
-database = sqlite3.connect("./database.db")
+database = sqlite3.connect("./storage/database.db")
 cursor = database.cursor()
 
 
