@@ -148,6 +148,8 @@ class User(BaseModel):
         self._require_role(UserRole.STUDENT)
         if number_in_class == self.number_in_class:
             return
+        if self.clas.size is None:
+            return
         if number_in_class < 1 or self.clas.size < number_in_class:
             raise ValidationError()
         if self.clas.student_number_taken(number_in_class):
@@ -165,12 +167,12 @@ class Class(BaseModel):
     @staticmethod
     def from_code(code: str) -> "Class":
         return Class(
-            fetch_value(cursor.execute("SELECT id FROM classes WHERE code=?", [code]))
+            fetch_value(cursor.execute("SELECT id FROM classes WHERE code=? AND grade IS NOT NULL AND size IS NOT NULL", [code]))
         )
 
     code: str
-    grade: int
-    size: int
+    grade: int | None
+    size: int | None
     teacher_id: int
 
     @property
@@ -218,3 +220,11 @@ def fetch_value(cursor: sqlite3.Cursor):
     if row is None:
         raise NotFoundError
     return row[0]
+
+
+def erase_database():
+    """РЕАЛЬНО ЧИСТИТ БАЗУ. ТОЛЬКО ДЛЯ ТЕСТОВ"""
+    database.execute("DELETE FROM users WHERE 1=1")
+    database.execute("DELETE FROM classes WHERE 1=1")
+    database.execute("DELETE FROM events WHERE 1=1")
+    database.commit()
