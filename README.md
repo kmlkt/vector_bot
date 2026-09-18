@@ -13,7 +13,7 @@ pip install -r requirements.txt
 Запуск
 
 ```sh
-python main.py
+python src/main.py
 ```
 
 ## в докере
