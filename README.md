@@ -1,55 +1,107 @@
+# Запуск
+
+При любом запуске создать файл .env и указать там токен бота (см. .env.example)
+
+## без докера
+
+Установить зависимости:
+
+```sh
+pip install -r requirements.txt
+```
+
+Запуск
+
+```sh
+python main.py
+```
+
+## в докере
+
+Отладка - собрать контейнер из текущего кода:
+
+```sh
+docker compose up
+```
+
+Деплой - взять контейнер из реестра:
+Повершелл:
+
+```powershell
+$env:APP_VERSION="latest" ; docker compose -f compose.prod.yaml up
+```
+
+Баш (не проверял):
+
+```sh
+$APP_VERSION="latest" & docker compose -f compose.prod.yaml up
+```
+
 # Использование data layer
 
 Сущности представлены классами. Нормальный конструктор принимает id. При изменении поля меняется значение в базе, при чтении поля читается значение из базы. Для получения сущности не по id используются статичные методы `User.from_max_id` (если такого юзера нет, он будет создан) и `Class.from_code`
 
 ```python
-t = User.from_max_id("t")
-# При задании роли teacher класс создаётся автоматически, задаётся рандомный код класса
-t.role = UserRole.TEACHER
-t.clas.grade = 8
-t.clas.size = 10
+teacher = User.from_max_id("t")
+teacher.role = UserRole.TEACHER
+Class.create(teacher)
+clas = teacher.current_created_class
+clas.grade = 7
+clas.size = 10
 
-class_code = t.clas.code
-
-s1 = User.from_max_id("s1")
-s1.role = UserRole.STUDENT
-s1.clas = Class.from_code(class_code)
-s1.number_in_class = 1
+student = User.from_max_id("s")
+student.role = UserRole.STUDENT
+student.clas = Class.from_code(clas.code)
+student.number_in_class = 1
 ```
+
+Больше примеров в tests/test_database.py
 
 # Модель данных
 
-```sql
+```
 users
-    id INTEGER PK
-    max_user_id TEXT UNIQUE -- id из MAX
-    role TEXT -- student | teacher | null
-    state TEXT -- choose_role | enter_code | enter_number |choose_grade | idle | choosing | solving | ...
-    grade INTEGER -- 7..11, null
-    class_id INTEGER FK -- null для «сам по себе»
-    number_in_class INTEGER
-    created_at DATETIME
-    tz_offset INTEGER -- на будущее; в MVP всем МСК
+  id              INTEGER PK
+  max_user_id     TEXT UNIQUE      -- id из MAX
+  role            TEXT             -- student | teacher | null
+  state           TEXT             -- choose_role | enter_code | enter_number | choose_grade | idle | choosing | solving | ...
+  grade           INTEGER          -- 7..11, null
+  class_id        INTEGER FK       -- null для «сам по себе»
+  number_in_class INTEGER
+  created_at      DATETIME
+  tz_offset       INTEGER          -- на будущее; в MVP всем МСК
 
 classes
-    id INTEGER PK
-    code TEXT UNIQUE -- 4 символа, без похожих букв (0/O, 1/I)
-    grade INTEGER
-    size INTEGER
-    teacher_id INTEGER FK users
-    created_at DATETIME
+  id              INTEGER PK
+  code            TEXT UNIQUE      -- 4 символа, без похожих букв (0/O, 1/I)
+  grade           INTEGER
+  size            INTEGER
+  teacher_id      INTEGER FK users
+  created_at      DATETIME
+
+tasks                              -- загружается из tasks.json при старте
+  id              TEXT PK          -- например L-014
+  axis            TEXT             -- H | T | S | I | N (см. раздел 4)
+  title           TEXT             -- заголовок на кнопке
+  body            TEXT             -- текст задания
+  options         JSON             -- ["...", "...", "...", "..."]
+  correct         INTEGER          -- индекс, null если непроверяемое
+  checkable       BOOLEAN
+  feedback        JSON             -- 4 строки, по одной на вариант: что сказать после выбора
+  difficulty      INTEGER          -- 1..3
 
 events
-    id INTEGER PK
-    user_id INTEGER FK
-    type TEXT -- shown | chosen | answered
-    task_id TEXT -- для shown — через запятую три id
-    answer INTEGER
-    is_correct BOOLEAN
-    latency_ms INTEGER
-    created_at DATETIME
-    pending_buttons TEXT -- какие callback сейчас валидны для пользователя через запятую
-    user_id INTEGER
-    payload TEXT
-    expires_at DATETIME
+  id              INTEGER PK
+  user_id         INTEGER FK
+  type            TEXT             -- shown | chosen | answered
+  task_id         TEXT             -- для shown — через запятую три id
+  answer          INTEGER
+  is_correct      BOOLEAN
+  latency_ms      INTEGER
+  created_at      DATETIME
+
+pending_buttons                    -- какие callback сейчас валидны для пользователя
+  user_id         INTEGER
+  payload         TEXT
+  expires_at      DATETIME
 ```
