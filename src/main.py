@@ -3,9 +3,9 @@ import os
 from dotenv import load_dotenv
 from flask import Flask
 
-from database import Class, User
-from migration import apply_all_migrations
-from model import UserRole
+from .database import Class, User
+from .migration import apply_all_migrations
+from .model import UserRole
 
 load_dotenv()
 BOT_TOKEN = os.environ["BOT_TOKEN"]

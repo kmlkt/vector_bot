@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import database
+from . import database
 
 
 def apply_all_migrations():

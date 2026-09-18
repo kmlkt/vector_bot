@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from model import TaskAxis
+from .model import TaskAxis
 
 
 @dataclass

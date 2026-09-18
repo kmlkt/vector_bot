@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from scoring import (  # noqa: E402
+from src.scoring import (  # noqa: E402
     AXES,
     DISTINCT_THRESHOLD,
     MIN_SOLVED_FOR_DISTINCT,

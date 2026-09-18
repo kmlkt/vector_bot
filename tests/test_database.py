@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from database import (
+from src.database import (
     AlreadyExistsError,
     Button,
     Class,
@@ -13,9 +13,9 @@ from database import (
     User,
     ValidationError,
 )
-from migration import apply_all_migrations
-from model import UserRole
-from tasks import Task
+from src.migration import apply_all_migrations
+from src.model import UserRole
+from src.tasks import Task
 
 
 @pytest.fixture(autouse=True)
@@ -25,8 +25,8 @@ def prepare_database(monkeypatch: pytest.MonkeyPatch):
         os.remove(test_db_path)
     test_db = sqlite3.connect(test_db_path)
     test_cursor = test_db.cursor()
-    monkeypatch.setattr("database.database", test_db)
-    monkeypatch.setattr("database.cursor", test_cursor)
+    monkeypatch.setattr("src.database.database", test_db)
+    monkeypatch.setattr("src.database.cursor", test_cursor)
     apply_all_migrations()
     yield
     test_db.close()
