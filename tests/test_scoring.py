@@ -295,3 +295,98 @@ def test_render_profile_lines_order_and_format():
     assert lines[0].startswith("Люди") and lines[0].endswith("0.8")
     assert lines[4].startswith("Природа") and lines[4].endswith("0.2")
     assert "████████░░" in lines[0]
+
+
+# --------------------------------------------------------------------------
+# Подборка направлений
+# --------------------------------------------------------------------------
+
+import json
+from pathlib import Path
+
+from scoring import direction_rank, direction_titles, pick_directions
+
+DIRECTIONS_PATH = Path(__file__).resolve().parent.parent / "data" / "directions.json"
+
+
+def _directions():
+    with open(DIRECTIONS_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def test_directions_file_is_valid():
+    ds = _directions()
+    assert 20 <= len(ds) <= 40
+    ids = [d["id"] for d in ds]
+    assert len(ids) == len(set(ids)), "дубли id"
+    for d in ds:
+        assert d["kind"] in ("profile10", "college")
+        assert d["title"].strip()
+        assert 1 <= len(d["axes"]) <= 2
+        assert all(a in AXES for a in d["axes"])
+        assert "ё" not in (d["title"] + d["hint"]).lower()
+
+
+def test_directions_cover_every_axis_as_primary():
+    ds = _directions()
+    primaries = {d["axes"][0] for d in ds}
+    assert primaries == set(AXES)
+
+
+def test_directions_every_axis_has_both_kinds():
+    ds = _directions()
+    for a in AXES:
+        kinds = {d["kind"] for d in ds if a in d["axes"]}
+        assert kinds == {"profile10", "college"}, a
+
+
+def test_direction_rank():
+    d = {"axes": ["S", "T"]}
+    assert direction_rank(d, ["S", "T"]) == 5
+    assert direction_rank(d, ["S"]) == 4
+    assert direction_rank(d, ["T", "S"]) == 3
+    assert direction_rank(d, ["T"]) == 1
+    assert direction_rank(d, ["H", "T"]) == 1
+    assert direction_rank(d, ["H"]) == 0
+    assert direction_rank(d, []) == 0
+
+
+def test_pick_directions_empty_lead():
+    assert pick_directions([], _directions()) == []
+
+
+def test_pick_directions_returns_three_matching():
+    ds = _directions()
+    picked = pick_directions(["T"], ds)
+    assert len(picked) == 3
+    for d in picked:
+        assert "T" in d["axes"]
+
+
+def test_pick_directions_mixes_profile_and_college():
+    ds = _directions()
+    for lead in (["H"], ["T"], ["S"], ["I"], ["N"], ["S", "T"], ["N", "H"]):
+        kinds = {d["kind"] for d in pick_directions(lead, ds)}
+        assert kinds == {"profile10", "college"}, lead
+
+
+def test_pick_directions_best_match_first():
+    ds = _directions()
+    picked = pick_directions(["S", "T"], ds)
+    ranks = [direction_rank(d, ["S", "T"]) for d in picked]
+    # первый — лучший из своего вида, остальные не выше него
+    assert ranks[0] >= max(ranks[1:]) or picked[0]["kind"] == "profile10"
+
+
+def test_pick_directions_salt_rotates_ties():
+    ds = _directions()
+    a = pick_directions(["T"], ds, salt=0)
+    b = pick_directions(["T"], ds, salt=1)
+    assert a != b
+    assert all("T" in d["axes"] for d in b)
+
+
+def test_direction_titles():
+    titles = direction_titles(["N"], _directions())
+    assert len(titles) == 3
+    assert all(isinstance(t, str) and t for t in titles)
