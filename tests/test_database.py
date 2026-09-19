@@ -133,7 +133,8 @@ def test_create_event_answered_correct(student: User):
         student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
     )
     Event.create_chosen(student, Task.by_id("S-001"))
-    e3 = Event.create_answered(student, Task.by_id("S-001"), 1)
+    task = Task.by_id("S-001")
+    e3 = Event.create_answered(student, task, task.correct)
     assert e3.latency_ms is not None
     assert e3.is_correct
 
@@ -143,7 +144,9 @@ def test_create_event_answered_incorrect(student: User):
         student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
     )
     Event.create_chosen(student, Task.by_id("S-001"))
-    e3 = Event.create_answered(student, Task.by_id("S-001"), 2)
+    task = Task.by_id("S-001")
+    wrong = (task.correct + 1) % 4
+    e3 = Event.create_answered(student, task, wrong)
     assert e3.latency_ms is not None
     assert not e3.is_correct
 
