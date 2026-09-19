@@ -1,6 +1,6 @@
 import datetime
-import os
 import sqlite3
+from collections.abc import Generator
 
 import pytest
 
@@ -18,30 +18,23 @@ from model import UserRole
 from tasks import Task
 
 
-@pytest.fixture(autouse=True)
-def prepare_database(monkeypatch: pytest.MonkeyPatch):
-    test_db_path = "test_database.db"
-    if os.path.exists(test_db_path):
-        os.remove(test_db_path)
-    test_db = sqlite3.connect(test_db_path)
-    test_cursor = test_db.cursor()
-    monkeypatch.setattr("database.database", test_db)
-    monkeypatch.setattr("database.cursor", test_cursor)
-    apply_all_migrations()
-    yield
-    test_db.close()
+@pytest.fixture()
+def database() -> Generator[sqlite3.Connection]:
+    with sqlite3.connect(":memory:") as test_db:
+        apply_all_migrations(test_db)
+        yield test_db
 
 
 @pytest.fixture
-def teacher() -> User:
-    t = User.from_max_id("t")
+def teacher(database: sqlite3.Connection) -> User:
+    t = User.from_max_id(database, "t")
     t.role = UserRole.TEACHER
     return t
 
 
 @pytest.fixture
-def student() -> User:
-    s = User.from_max_id("s")
+def student(database) -> User:
+    s = User.from_max_id(database, "s")
     s.role = UserRole.STUDENT
     return s
 
@@ -65,88 +58,104 @@ def test_current_class_changes(teacher: User):
     assert teacher.current_created_class.id == c2.id
 
 
-def test_normal_user(teacher: User, student: User):
+def test_normal_user(database: sqlite3.Connection, teacher: User, student: User):
     Class.create(teacher)
     clas = teacher.current_created_class
     clas.grade = 7
     clas.size = 10
-    student.clas = Class.from_code(clas.code)
+    student.clas = Class.from_code(database, clas.code)
     assert student.clas.id == clas.id
     student.number_in_class = 1
 
 
-def test_user_set_unready_class(teacher: User, student: User):
+def test_user_set_unready_class(
+    database: sqlite3.Connection, teacher: User, student: User
+):
     Class.create(teacher)
     clas = teacher.current_created_class
     with pytest.raises(NotFoundError):
-        student.clas = Class.from_code(clas.code)
+        student.clas = Class.from_code(database, clas.code)
 
 
-def test_user_set_incorrect_class(student: User):
+def test_user_set_incorrect_class(database: sqlite3.Connection, student: User):
     with pytest.raises(NotFoundError):
-        student.clas = Class.from_code("1I0O")
+        student.clas = Class.from_code(database, "1I0O")
 
 
-def test_user_set_incorrect_number_in_class(teacher: User, student: User):
+def test_user_set_incorrect_number_in_class(
+    database: sqlite3.Connection, teacher: User, student: User
+):
     Class.create(teacher)
     clas = teacher.current_created_class
     clas.grade = 7
     clas.size = 10
-    student.clas = Class.from_code(clas.code)
+    student.clas = Class.from_code(database, clas.code)
     with pytest.raises(ValidationError):
         student.number_in_class = 0
     with pytest.raises(ValidationError):
         student.number_in_class = 11
 
 
-def test_user_set_taken_number_in_class(teacher: User, student: User):
+def test_user_set_taken_number_in_class(
+    database: sqlite3.Connection, teacher: User, student: User
+):
     Class.create(teacher)
     clas = teacher.current_created_class
     clas.grade = 7
     clas.size = 10
-    student.clas = Class.from_code(clas.code)
+    student.clas = Class.from_code(database, clas.code)
     student.number_in_class = 1
 
-    s2 = User.from_max_id("s2")
+    s2 = User.from_max_id(database, "s2")
     s2.role = UserRole.STUDENT
-    s2.clas = Class.from_code(clas.code)
+    s2.clas = Class.from_code(database, clas.code)
     with pytest.raises(AlreadyExistsError):
         s2.number_in_class = 1
 
 
-def test_create_event_shown(student: User):
+def test_create_event_shown(database: sqlite3.Connection, student: User):
     Event.create_shown(
-        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+        database,
+        student,
+        [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
 
 
-def test_create_event_chosen(student: User):
+def test_create_event_chosen(database: sqlite3.Connection, student: User):
     Event.create_shown(
-        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+        database,
+        student,
+        [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
-    e2 = Event.create_chosen(student, Task.by_id("S-001"))
+    e2 = Event.create_chosen(database, student, Task.by_id("S-001"))
     assert e2.latency_ms is not None
 
 
-def test_create_event_answered_correct(student: User):
+def test_create_event_answered_correct(database: sqlite3.Connection, student: User):
     Event.create_shown(
-        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+        database,
+        student,
+        [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
-    Event.create_chosen(student, Task.by_id("S-001"))
+    Event.create_chosen(database, student, Task.by_id("S-001"))
     task = Task.by_id("S-001")
-    e3 = Event.create_answered(student, task, task.correct)
+    assert task.correct is not None
+    e3 = Event.create_answered(database, student, task, task.correct)
     assert e3.latency_ms is not None
     assert e3.is_correct
 
 
-def test_create_event_answered_incorrect(student: User):
+def test_create_event_answered_incorrect(database: sqlite3.Connection, student: User):
     Event.create_shown(
-        student, [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")]
+        database,
+        student,
+        [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
-    Event.create_chosen(student, Task.by_id("S-001"))
+    Event.create_chosen(database, student, Task.by_id("S-001"))
     task = Task.by_id("S-001")
+    assert task.correct is not None
     wrong = (task.correct + 1) % 4
-    e3 = Event.create_answered(student, task, wrong)
+    e3 = Event.create_answered(database, student, task, wrong)
     assert e3.latency_ms is not None
     assert not e3.is_correct
 

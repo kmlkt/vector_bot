@@ -1,4 +1,5 @@
 import os
+import sqlite3
 
 from dotenv import load_dotenv
 from flask import Flask
@@ -10,18 +11,20 @@ from model import UserRole
 load_dotenv()
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 
-apply_all_migrations()
+database = sqlite3.connect("storage/database.db")
 
-teacher = User.from_max_id("ttt")
+apply_all_migrations(database)
+
+teacher = User.from_max_id(database, "ttt")
 teacher.role = UserRole.TEACHER
 Class.create(teacher)
 clas = teacher.current_created_class
 clas.grade = 7
 clas.size = 10
 
-student = User.from_max_id("sss")
+student = User.from_max_id(database, "sss")
 student.role = UserRole.STUDENT
-student.clas = Class.from_code(clas.code)
+student.clas = Class.from_code(database, clas.code)
 student.number_in_class = 1
 
 
