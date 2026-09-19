@@ -1,5 +1,6 @@
 import datetime
 import sqlite3
+from collections.abc import Generator
 from dataclasses import dataclass
 from math import floor
 
@@ -304,6 +305,18 @@ class Event(BaseModel):
         )
         database.commit()
         return Event(database, id)
+
+    @staticmethod
+    def all_tasks_shown_to_user(database: sqlite3.Connection, user: User) -> list[Task]:
+        task_ids_groups: Generator[str] = (
+            x
+            for (x,) in database.execute(
+                "SELECT task_id FROM events WHERE user_id=? AND type='shown'",
+                [user.id],
+            )
+        )
+        task_ids: Generator[str] = (y for x in task_ids_groups for y in x.split(","))
+        return [Task.by_id(x) for x in task_ids]
 
     user_id: int
     type: EventType
