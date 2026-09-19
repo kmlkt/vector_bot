@@ -261,3 +261,80 @@ def summary_key(p: Profile) -> str:
     if not lead:
         return "profile.summary.flat"
     return "profile.summary.one_axis" if len(lead) == 1 else "profile.summary.two_axes"
+
+
+# --------------------------------------------------------------------------
+# Подборка направлений (data/directions.json)
+# --------------------------------------------------------------------------
+#
+# Справочник: список записей {id, kind, title, axes, hint}.
+#   kind  — "profile10" (профиль 10 класса) или "college" (специальность СПО)
+#   axes  — одна или две оси; первая — главная.
+#
+# Ранг записи для ведущих осей ученика lead (1 или 2 оси, первая — сильнее):
+#   +4  главная ось записи совпадает с первой ведущей осью ученика
+#   +2  главная ось записи есть среди ведущих осей ученика (но не первая)
+#   +1  вторая ось записи есть среди ведущих осей ученика
+# Записи с рангом 0 не показываем. Среди равных — порядок как в файле,
+# со сдвигом на salt (например, внутренний id ученика), чтобы у разных
+# учеников с одинаковым профилем подборки различались.
+#
+# В подборку из n стараемся включить хотя бы один профиль 10 класса и
+# хотя бы одну специальность колледжа — для 8–9 класса важны обе развилки.
+
+def direction_rank(direction: Mapping[str, Any], lead: Sequence[str]) -> int:
+    axes = list(direction.get("axes", []))
+    if not axes or not lead:
+        return 0
+    rank = 0
+    if axes[0] == lead[0]:
+        rank += 4
+    elif axes[0] in lead:
+        rank += 2
+    if len(axes) > 1 and axes[1] in lead:
+        rank += 1
+    return rank
+
+
+def pick_directions(
+    lead: Sequence[str],
+    directions: Iterable[Mapping[str, Any]],
+    n: int = 3,
+    salt: int = 0,
+) -> list[dict[str, Any]]:
+    """До n направлений под ведущие оси. Пустой список, если осей нет."""
+    if not lead or n <= 0:
+        return []
+    ranked = [(direction_rank(d, lead), i, d) for i, d in enumerate(directions)]
+    ranked = [(r, i, d) for r, i, d in ranked if r > 0]
+    if not ranked:
+        return []
+
+    # сдвиг внутри групп равного ранга
+    by_rank: dict[int, list] = {}
+    for r, i, d in ranked:
+        by_rank.setdefault(r, []).append(d)
+    ordered: list[dict[str, Any]] = []
+    for r in sorted(by_rank, reverse=True):
+        group = by_rank[r]
+        k = salt % len(group) if group else 0
+        ordered.extend(group[k:] + group[:k])
+
+    picked: list[dict[str, Any]] = []
+    for kind in ("profile10", "college"):
+        for d in ordered:
+            if d.get("kind") == kind and d not in picked:
+                picked.append(d)
+                break
+    for d in ordered:
+        if len(picked) >= n:
+            break
+        if d not in picked:
+            picked.append(d)
+    return picked[:n]
+
+
+def direction_titles(lead: Sequence[str], directions: Iterable[Mapping[str, Any]],
+                     n: int = 3, salt: int = 0) -> list[str]:
+    """Заголовки для profile.directions в texts.md."""
+    return [d["title"] for d in pick_directions(lead, directions, n=n, salt=salt)]
