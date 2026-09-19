@@ -5,19 +5,19 @@ from enum import StrEnum, auto
 class UserRole(StrEnum):
     STUDENT = auto()
     TEACHER = auto()
-    ENTER_GRADE = auto()
-    CONFIRM_NUMBER = auto()
-    IDLE = auto()
-    ENTER_TEACHER_CODE = auto()
-    ENTER_CLASS_GRADE = auto()
-    ENTER_CLASS_SIZE = auto()
+   
 
 class UserState(StrEnum):
     CHOOSE_ROLE = auto()
     ENTER_HAS_CODE = auto()
     ENTER_CODE = auto()
     ENTER_NUMBER_IN_CLASS = auto()
-
+    ENTER_GRADE = auto()
+    CONFIRM_NUMBER = auto()
+    IDLE = auto()
+    ENTER_TEACHER_CODE = auto()
+    ENTER_CLASS_GRADE = auto()
+    ENTER_CLASS_SIZE = auto()
 
 class EventType(StrEnum):
     SHOWN = auto()
