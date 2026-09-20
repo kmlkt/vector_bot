@@ -193,12 +193,28 @@ class User(BaseModel):
             return
         if number_in_class < 1 or self.clas.size < number_in_class:
             raise ValidationError()
-        if self.clas.student_number_taken(number_in_class):
+        if self.clas.student_at_number(number_in_class) is not None:
             raise AlreadyExistsError()
 
     def require_role(self, role: UserRole):
         if self.role != role:
             raise OperationNotAllowedError()
+
+    def reset(self):
+        if self.role == UserRole.STUDENT:
+            self.database.execute("DELETE FROM events WHERE user_id=?", [self.id])
+        self.database.execute(
+            "UPDATE users SET role=NULL, state='idle', grade=NULL, class_id=NULL, number_in_class=NULL WHERE id=?",
+            [self.id],
+        )
+        self.database.commit()
+
+    @property
+    def solved_count(self) -> int:
+        row = self.database.execute(
+            "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered'", [user.id]
+        ).fetchone()
+        return row[0] if row else 0
 
 
 class Class(BaseModel):
@@ -246,16 +262,15 @@ class Class(BaseModel):
         if size < 1:
             raise ValidationError()
 
-    def student_number_taken(self, number_in_class: int) -> bool:
-        return (
-            fetch_value(
-                self.database.execute(
-                    "SELECT COUNT(id) FROM users WHERE class_id=? AND number_in_class=?",
-                    [self.id, number_in_class],
-                )
-            )
-            > 0
-        )
+    def student_at_number(self, number_in_class: int) -> User | None:
+        row = self.database.execute(
+            "SELECT id FROM users WHERE class_id=? AND number_in_class=?",
+            [self.id, number_in_class],
+        ).fetchone()
+        if not row:
+            return None
+        return User(self.database, row[0])
+
 
 
 class Event(BaseModel):

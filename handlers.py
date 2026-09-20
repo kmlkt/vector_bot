@@ -88,10 +88,10 @@ def on_start(user: User) -> list[Reply]:
                   classes_count=len(user.classes))
     elif user.class_id is not None:
         r = reply("start.registered.student", ["CONTINUE", "RESET"],
-                  class_code=user.clas.code, number=user.number_in_class, solved=_solved(user))
+                  class_code=user.clas.code, number=user.number_in_class, solved=user.solved_count)
     else:
         r = reply("start.registered.student.solo", ["CONTINUE", "RESET"],
-                  grade=user.grade, solved=_solved(user))
+                  grade=user.grade, solved=user.solved_count)
     return _remember(user, [r])
 
 
@@ -320,15 +320,10 @@ def _free(user: User, arg: str) -> list[Reply]:
     except ValueError:
         return [reply("free.usage")]
     for cls in user.classes:
-        row = user.database.execute(
-            "SELECT id FROM users WHERE class_id=? AND number_in_class=?", [cls.id, number]
-        ).fetchone()
-        if row:
-            user.database.execute(
-                "UPDATE users SET number_in_class=NULL, state=? WHERE id=?",
-                [UserState.ENTER_NEW_NUMBER, row[0]],
-            )
-            user.database.commit()
+        student = cls.student_at_number(number)
+        if student:
+            student.number_in_class = None
+            student.state = UserState.ENTER_NEW_NUMBER
             return [reply("free.done", number=number)]
     return [reply("free.not_found", number=number)]
 
@@ -346,13 +341,8 @@ def _reset_ask(user: User) -> list[Reply]:
 
 
 def _reset_do(user: User) -> list[Reply]:
-    if user.role == UserRole.STUDENT:
-        user.database.execute("DELETE FROM events WHERE user_id=?", [user.id])
-    user.database.execute(
-        "UPDATE users SET role=NULL, state=?, grade=NULL, class_id=NULL, number_in_class=NULL WHERE id=?",
-        [UserState.CHOOSE_ROLE, user.id],
-    )
-    user.database.commit()
+    user.reset()
+    user.state = UserState.CHOOSE_ROLE
     return _remember(user, [reply("reset.done", ROLE_PAYLOADS)])
 
 
@@ -398,12 +388,6 @@ def _prompt_for_state(user: User) -> list[Reply]:
         return [reply(key, ["RESET_YES", "RESET_NO"])]
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
 
-
-def _solved(user: User) -> int:
-    row = user.database.execute(
-        "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered'", [user.id]
-    ).fetchone()
-    return row[0] if row else 0
 
 
 _teacher_code_override: str | None = None
