@@ -7,6 +7,7 @@
 import asyncio
 import logging
 import os
+import sqlite3
 
 from dotenv import load_dotenv
 from maxapi import Bot, Dispatcher, F
@@ -25,7 +26,12 @@ load_dotenv()
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 handlers.set_teacher_code(os.getenv("TEACHER_CODE"))
-apply_all_migrations()
+
+DB_PATH = "./storage/database.db"
+os.makedirs("./storage", exist_ok=True)
+database = sqlite3.connect(DB_PATH)
+
+apply_all_migrations(database)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -55,26 +61,26 @@ def _safe(fn, user: User, *args) -> list[Reply]:
 @dp.bot_started()
 async def bot_started(event: BotStarted):
     # нажатие «Начать» в MAX: тот же сценарий, что /start
-    user = User.from_max_id(str(event.user.user_id))
-    for r in _safe(handlers.on_start, user):
+    user = User.from_max_id(database, str(event.user.user_id))
+    for r in _safe(handlers.on_start,  user):
         await bot.send_message(chat_id=event.chat_id, text=r.text, attachments=_attachments(r))
 
 
 @dp.message_created(CommandStart())
 async def cmd_start(event: MessageCreated):
-    user = User.from_max_id(str(event.message.sender.user_id))
+    user = User.from_max_id(database, str(event.message.sender.user_id))
     await _answer(event, _safe(handlers.on_start, user))
 
 
 @dp.message_callback()
 async def callback(event: MessageCallback):
-    user = User.from_max_id(str(event.callback.user.user_id))
+    user = User.from_max_id(database, str(event.callback.user.user_id))
     await _answer(event, _safe(handlers.on_callback, user, event.callback.payload or ""))
 
 
 @dp.message_created(F.message.body.text)
 async def text(event: MessageCreated):
-    user = User.from_max_id(str(event.message.sender.user_id))
+    user = User.from_max_id(database, str(event.message.sender.user_id))
     await _answer(event, _safe(handlers.on_text, user, event.message.body.text))
 
 

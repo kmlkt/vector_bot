@@ -16,17 +16,14 @@ import os
 import sqlite3
 import sys
 
-import database  # noqa: E402  (соединение переопределяем ниже)
-
 DB_PATH = "./storage/console.db"
 
 
-def _open_db(keep: bool) -> None:
+def _open_db(keep: bool) -> sqlite3.Connection:
     os.makedirs("./storage", exist_ok=True)
     if not keep and os.path.exists(DB_PATH):
         os.remove(DB_PATH)
-    database.database = sqlite3.connect(DB_PATH)
-    database.cursor = database.database.cursor()
+    return sqlite3.connect(DB_PATH)
 
 
 def _print(replies) -> list[str]:
@@ -45,9 +42,9 @@ def _print(replies) -> list[str]:
 
 def main() -> None:
     keep = "--keep" in sys.argv
-    _open_db(keep)
+    database = _open_db(keep)
     from migration import apply_all_migrations
-    apply_all_migrations()
+    apply_all_migrations(database)
 
     import handlers
     from database import User
@@ -56,7 +53,7 @@ def main() -> None:
     print(f"Код учителя: {handlers._teacher_code_value()}   (задать: TEACHER_CODE=... python console.py)")
 
     max_id = "u1"
-    user = User.from_max_id(max_id)
+    user = User.from_max_id(database, max_id)
     payloads = _print(handlers.on_start(user))
 
     while True:
@@ -70,12 +67,12 @@ def main() -> None:
         if raw == ":q":
             return
         if raw == ":users":
-            for (mid, role, state) in database.cursor.execute("SELECT max_user_id, role, state FROM users"):
+            for (mid, role, state) in database.execute("SELECT max_user_id, role, state FROM users"):
                 print(f"  {mid}: {role} / {state}")
             continue
         if raw.startswith(":user "):
             max_id = raw.split(" ", 1)[1].strip()
-            user = User.from_max_id(max_id)
+            user = User.from_max_id(database,max_id)
             payloads = _print(handlers.on_start(user))
             continue
         if raw.isdigit() and payloads and 1 <= int(raw) <= len(payloads):

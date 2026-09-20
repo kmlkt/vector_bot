@@ -1,5 +1,7 @@
+import itertools
 import json
 from dataclasses import dataclass
+from pathlib import Path
 
 from model import TaskAxis
 
@@ -9,6 +11,14 @@ class Task:
     @staticmethod
     def by_id(id: str) -> "Task":
         return TASKS_BY_ID[id]
+
+    @staticmethod
+    def next(shown: "list[Task]"): # не завершено
+        pass
+
+    @staticmethod
+    def group_by_axis(tasks: "list[Task]") -> "dict[TaskAxis, list[Task]]":
+        return {k: list(g) for k, g in itertools.groupby(tasks, lambda x: x.axis)}
 
     id: str
     axis: TaskAxis
@@ -21,7 +31,11 @@ class Task:
     difficulty: int
 
 
-with open("./data/tasks.json", encoding="utf-8") as f:
+TASKS_PATH = Path(__file__).resolve().parent / "data" / "tasks.json"
+
+with open(TASKS_PATH, encoding="utf-8") as f:
     TASKS = [Task(**x) for x in json.load(f)]
 
-TASKS_BY_ID = dict(zip((x.id for x in TASKS), TASKS))
+TASKS_BY_ID = {x.id: x for x in TASKS}
+
+TASKS_BY_AXIS = Task.group_by_axis(TASKS)
