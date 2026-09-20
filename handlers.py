@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import database
 from database import (
     AlreadyExistsError,
     Button,
@@ -236,7 +235,7 @@ def _choose_role(user: User, payload: str) -> list[Reply]:
 def _enter_code(user: User, text: str) -> list[Reply]:
     code = text.upper().replace(" ", "")
     try:
-        cls = Class.from_code(code)
+        cls = Class.from_code(user.database, code)
     except NotFoundError:
         return _remember(user, [reply("student.code_not_found", ["NO_CODE"])])
     if cls.size is None:
@@ -321,15 +320,15 @@ def _free(user: User, arg: str) -> list[Reply]:
     except ValueError:
         return [reply("free.usage")]
     for cls in user.classes:
-        row = database.cursor.execute(
+        row = user.database.execute(
             "SELECT id FROM users WHERE class_id=? AND number_in_class=?", [cls.id, number]
         ).fetchone()
         if row:
-            database.cursor.execute(
+            user.database.execute(
                 "UPDATE users SET number_in_class=NULL, state=? WHERE id=?",
                 [UserState.ENTER_NEW_NUMBER, row[0]],
             )
-            database.database.commit()
+            user.database.commit()
             return [reply("free.done", number=number)]
     return [reply("free.not_found", number=number)]
 
@@ -348,12 +347,12 @@ def _reset_ask(user: User) -> list[Reply]:
 
 def _reset_do(user: User) -> list[Reply]:
     if user.role == UserRole.STUDENT:
-        database.cursor.execute("DELETE FROM events WHERE user_id=?", [user.id])
-    database.cursor.execute(
+        user.database.execute("DELETE FROM events WHERE user_id=?", [user.id])
+    user.database.execute(
         "UPDATE users SET role=NULL, state=?, grade=NULL, class_id=NULL, number_in_class=NULL WHERE id=?",
         [UserState.CHOOSE_ROLE, user.id],
     )
-    database.database.commit()
+    user.database.commit()
     return _remember(user, [reply("reset.done", ROLE_PAYLOADS)])
 
 
@@ -401,7 +400,7 @@ def _prompt_for_state(user: User) -> list[Reply]:
 
 
 def _solved(user: User) -> int:
-    row = database.cursor.execute(
+    row = user.database.execute(
         "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered'", [user.id]
     ).fetchone()
     return row[0] if row else 0

@@ -13,7 +13,7 @@ class Task:
         return TASKS_BY_ID[id]
 
     @staticmethod
-    def next(shown: "list[Task]"):
+    def next(shown: "list[Task]"): # не завершено
         pass
 
     @staticmethod
