@@ -20,12 +20,14 @@ import handlers
 from database import User
 from handlers import Reply
 from migration import apply_all_migrations
+import scheduler
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 handlers.set_teacher_code(os.getenv("TEACHER_CODE"))
+TASK_SEND_TIME = os.getenv("TASK_SEND_TIME")
 
 DB_PATH = "./storage/database.db"
 os.makedirs("./storage", exist_ok=True)
@@ -48,6 +50,11 @@ def _attachments(reply: Reply) -> list:
 async def _answer(event, replies: list[Reply]) -> None:
     for r in replies:
         await event.message.answer(r.text, attachments=_attachments(r))
+
+
+async def _send(user: User, messages: list[Reply]) -> None:
+    for r in messages:
+        await bot.send_message(user_id=user.max_user_id, text=r.text, attachments=_attachments(r))
 
 
 def _safe(fn, user: User, *args) -> list[Reply]:
@@ -85,6 +92,7 @@ async def text(event: MessageCreated):
 
 
 async def main():
+    scheduler.run_scheduler(database, lambda x: _send(x, handlers.on_task(x)), TASK_SEND_TIME)
     await dp.start_polling(bot)
 
 

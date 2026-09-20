@@ -113,49 +113,45 @@ def test_user_set_taken_number_in_class(
         s2.number_in_class = 1
 
 
-def test_create_event_shown(database: sqlite3.Connection, student: User):
+def test_create_event_shown(student: User):
     Event.create_shown(
-        database,
         student,
         [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
 
 
-def test_create_event_chosen(database: sqlite3.Connection, student: User):
+def test_create_event_chosen(student: User):
     Event.create_shown(
-        database,
         student,
         [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
-    e2 = Event.create_chosen(database, student, Task.by_id("S-001"))
+    e2 = Event.create_chosen(student, Task.by_id("S-001"))
     assert e2.latency_ms is not None
 
 
-def test_create_event_answered_correct(database: sqlite3.Connection, student: User):
+def test_create_event_answered_correct(student: User):
     Event.create_shown(
-        database,
         student,
         [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
-    Event.create_chosen(database, student, Task.by_id("S-001"))
+    Event.create_chosen(student, Task.by_id("S-001"))
     task = Task.by_id("S-001")
     assert task.correct is not None
-    e3 = Event.create_answered(database, student, task, task.correct)
+    e3 = Event.create_answered(student, task, task.correct)
     assert e3.latency_ms is not None
     assert e3.is_correct
 
 
-def test_create_event_answered_incorrect(database: sqlite3.Connection, student: User):
+def test_create_event_answered_incorrect(student: User):
     Event.create_shown(
-        database,
         student,
         [Task.by_id("S-001"), Task.by_id("S-002"), Task.by_id("S-003")],
     )
-    Event.create_chosen(database, student, Task.by_id("S-001"))
+    Event.create_chosen(student, Task.by_id("S-001"))
     task = Task.by_id("S-001")
     assert task.correct is not None
     wrong = (task.correct + 1) % 4
-    e3 = Event.create_answered(database, student, task, wrong)
+    e3 = Event.create_answered(student, task, wrong)
     assert e3.latency_ms is not None
     assert not e3.is_correct
 

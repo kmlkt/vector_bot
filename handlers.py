@@ -16,12 +16,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from database import (
     AlreadyExistsError,
     Button,
     Class,
+    Event,
     NotFoundError,
     NotReadyError,
     OperationNotAllowedError,
@@ -29,6 +31,7 @@ from database import (
     ValidationError,
 )
 from model import UserRole, UserState
+from tasks import Task
 from texts import BUTTONS, T
 
 TEACHER_CODE_DEFAULT = "teacher"
@@ -183,6 +186,12 @@ def on_text(user: User, text: str) -> list[Reply]:
         return _remember(user, _prompt_for_state(user))
 
     return [reply("error.generic")]
+
+
+def on_task(user: User) -> list[Reply]:
+    tasks = Task.choose3(user.shown_tasks)
+    Event.create_shown(user, tasks)
+    return [Reply(",".join(f"{x.title} ({x.axis})" for x in tasks))]
 
 
 # ---------------------------------------------------------------------------
@@ -387,7 +396,6 @@ def _prompt_for_state(user: User) -> list[Reply]:
         key = "reset.confirm.teacher" if user.role == UserRole.TEACHER else "reset.confirm.student"
         return [reply(key, ["RESET_YES", "RESET_NO"])]
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
-
 
 
 _teacher_code_override: str | None = None
