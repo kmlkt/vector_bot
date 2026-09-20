@@ -94,6 +94,15 @@ class User(BaseModel):
             return User._create_new(database, max_user_id)
 
     @staticmethod
+    def all_idle_students(database: sqlite3.Connection) -> "list[User]":
+        return [
+            User(database, id)
+            for (id,) in database.execute(
+                "SELECT id FROM users WHERE role='student' AND state='idle'"
+            )
+        ]
+
+    @staticmethod
     def _create_new(database: sqlite3.Connection, max_user_id: str) -> "User":
         id = fetch_value(
             database.execute(
@@ -104,6 +113,7 @@ class User(BaseModel):
         database.commit()
         return User(database, id)
 
+    max_user_id: int
     role: UserRole | None
     state: UserState
     grade: int | None
@@ -218,6 +228,18 @@ class User(BaseModel):
         ).fetchone()
         return row[0] if row else 0
 
+    @property
+    def shown_tasks(self) -> list[Task]:
+        task_ids_groups: Generator[str] = (
+            x
+            for (x,) in self.database.execute(
+                "SELECT task_id FROM events WHERE user_id=? AND type='shown'",
+                [self.id],
+            )
+        )
+        task_ids: Generator[str] = (y for x in task_ids_groups for y in x.split(","))
+        return [Task.by_id(x) for x in task_ids]
+
 
 class Class(BaseModel):
     def __init__(self, database: sqlite3.Connection, id: int) -> None:
@@ -274,66 +296,49 @@ class Class(BaseModel):
         return User(self.database, row[0])
 
 
-
 class Event(BaseModel):
     def __init__(self, database: sqlite3.Connection, id: int):
         super().__init__(database, "events", id)
 
     @staticmethod
-    def create_shown(
-        database: sqlite3.Connection, user: User, tasks: list[Task]
-    ) -> "Event":
+    def create_shown(user: User, tasks: list[Task]) -> "Event":
         user.require_role(UserRole.STUDENT)
         id = fetch_value(
-            database.execute(
+            user.database.execute(
                 "INSERT INTO events (user_id, type, task_id) VALUES (?, 'shown', ?) RETURNING id",
                 [user.id, ",".join(x.id for x in tasks)],
             )
         )
-        database.commit()
-        return Event(database, id)
+        user.database.commit()
+        return Event(user.database, id)
 
     @staticmethod
-    def create_chosen(database: sqlite3.Connection, user: User, task: Task) -> "Event":
+    def create_chosen(user: User, task: Task) -> "Event":
         user.require_role(UserRole.STUDENT)
-        latency_ms = Event._latency_since(database, user, task, EventType.SHOWN)
+        latency_ms = Event._latency_since(user, task, EventType.SHOWN)
         id = fetch_value(
-            database.execute(
+            user.database.execute(
                 "INSERT INTO events (user_id, type, task_id, latency_ms) VALUES (?, 'chosen', ?, ?) RETURNING id",
                 [user.id, task.id, latency_ms],
             )
         )
-        database.commit()
-        return Event(database, id)
+        user.database.commit()
+        return Event(user.database, id)
 
     @staticmethod
-    def create_answered(
-        database: sqlite3.Connection, user: User, task: Task, answer: int
-    ) -> "Event":
+    def create_answered(user: User, task: Task, answer: int) -> "Event":
         user.require_role(UserRole.STUDENT)
         is_correct = None if task.correct is None else (task.correct == answer)
-        latency_ms = Event._latency_since(database, user, task, EventType.CHOSEN)
+        latency_ms = Event._latency_since(user, task, EventType.CHOSEN)
         id = fetch_value(
-            database.execute(
+            user.database.execute(
                 "INSERT INTO events (user_id, type, task_id, answer, is_correct, latency_ms) "
                 + "VALUES (?, 'answered', ?, ?, ?, ?) RETURNING id",
                 [user.id, task.id, answer, is_correct, latency_ms],
             )
         )
-        database.commit()
-        return Event(database, id)
-
-    @staticmethod
-    def all_tasks_shown_to_user(database: sqlite3.Connection, user: User) -> list[Task]:
-        task_ids_groups: Generator[str] = (
-            x
-            for (x,) in database.execute(
-                "SELECT task_id FROM events WHERE user_id=? AND type='shown'",
-                [user.id],
-            )
-        )
-        task_ids: Generator[str] = (y for x in task_ids_groups for y in x.split(","))
-        return [Task.by_id(x) for x in task_ids]
+        user.database.commit()
+        return Event(user.database, id)
 
     user_id: int
     type: EventType
@@ -347,12 +352,10 @@ class Event(BaseModel):
         return User(self.database, self.user_id)
 
     @staticmethod
-    def _latency_since(
-        database: sqlite3.Connection, user: User, task: Task, type: EventType
-    ) -> int:
+    def _latency_since(user: User, task: Task, type: EventType) -> int:
         previous_created_at = datetime.datetime.fromisoformat(
             fetch_value(
-                database.execute(
+                user.database.execute(
                     "SELECT MAX(created_at) FROM events WHERE user_id=? AND task_id LIKE ? AND type=?",
                     [user.id, f"%{task.id}%", type],
                 )
