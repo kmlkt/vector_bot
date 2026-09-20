@@ -117,11 +117,15 @@ def test_student_onboarding_full(database: sqlite3.Connection):
     r = press(s, r, "Да")                                             # шаг 16
     assert "соглашаешься" in texts(r) and labels(r) == ["Понятно, начнем"]
     assert s.state == UserState.CONSENT
-    r = press(s, r, "Понятно, начнем")
+    r = press(s, r, "Понятно, начнем")  # выдача карточек
+    assert s.state == UserState.CHOOSING
+    assert len(labels(r)) == 3                       
+    assert len(set(labels(r))) == 3                  
+    r = press(s, r, labels(r)[0]) # выбор карточки
+    assert s.state == UserState.SOLVING
+    assert labels(r) == ["А", "Б", "В", "Г"]         
+    r = press(s, r, "А") # ответы
     assert s.state == UserState.IDLE
-    r = on_start(s)                                                   # шаг 17
-    assert f"класса {code}, номер 2" in texts(r) and labels(r) == ["Продолжить", "Начать заново"]
-    assert "Хорошо" in texts(press(s, r, "Продолжить"))
 
 
 def test_student_number_taken(database: sqlite3.Connection):
@@ -158,14 +162,20 @@ def test_student_solo_and_other_grade(database: sqlite3.Connection):
     r = press(s, r, "9")
     assert s.grade == 9 and labels(r) == ["Понятно, начнем"]
     r = press(s, r, "Понятно, начнем")
+    assert s.state == UserState.CHOOSING # после согласия сразу карточки заданий
+    assert len(labels(r)) == 3
+    r = press(s, r, labels(r)[0])       # выбрали карточку
+    r = press(s, r, "А")                # ответили
     assert s.state == UserState.IDLE
     assert "9 класс, без кода" in texts(on_start(s))
-
     o = User.from_max_id(database, "o")
     r = press(o, on_start(o), "Я ученик")
     r = press(o, r, "Нет, сам по себе")
     r = press(o, r, "Другое")
     assert "без привязки" in texts(r) and labels(r) == ["Понятно, начнем"]
+    r = press(o, r, "Понятно, начнем")
+    assert o.state == UserState.CHOOSING
+    assert len(labels(r)) == 3
 
 
 def test_unfinished_class_code_is_not_accepted(database: sqlite3.Connection):
@@ -197,7 +207,11 @@ def test_bot_never_silent(database: sqlite3.Connection):
     assert texts(on_text(s, "ыыы"))                                   # посреди онбординга
     r = press(s, r, "Нет, сам по себе")
     r = press(s, r, "8")
-    press(s, r, "Понятно, начнем")
+    r = press(s, r, "Понятно, начнем")
+    assert "Выбери карточку" in texts(on_text(s, "ыыы"))
+    r = press(s, r, labels(r)[0])
+    r = press(s, r, "А")
+    assert s.state == UserState.IDLE
     assert "Не понял" in texts(on_text(s, "ыыы"))                     # шаг 31
     assert "/task" in texts(on_text(s, "/help"))                      # шаг 30
     assert "/profile" in texts(on_text(s, "/whatever"))
