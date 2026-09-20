@@ -187,10 +187,12 @@ class User(BaseModel):
 
     def _validate_number_in_class(self, number_in_class: int):
         self.require_role(UserRole.STUDENT)
+        if number_in_class is None:
+            return
         if number_in_class == self.number_in_class:
             return
         if self.clas.size is None:
-            return
+            raise ValidationError()
         if number_in_class < 1 or self.clas.size < number_in_class:
             raise ValidationError()
         if self.clas.student_at_number(number_in_class) is not None:
@@ -212,7 +214,7 @@ class User(BaseModel):
     @property
     def solved_count(self) -> int:
         row = self.database.execute(
-            "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered'", [user.id]
+            "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered'", [self.id]
         ).fetchone()
         return row[0] if row else 0
 

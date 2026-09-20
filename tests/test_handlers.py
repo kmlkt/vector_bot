@@ -1,5 +1,6 @@
 """Онбординг целиком без MAX: шаги 1–18 и 30–35 из docs/smoke-checklist.md."""
 
+from collections.abc import Generator
 import os
 import sqlite3
 
@@ -12,18 +13,12 @@ from migration import apply_all_migrations
 from model import UserRole, UserState
 
 
-@pytest.fixture(autouse=True)
-def prepare_database(monkeypatch: pytest.MonkeyPatch):
-    path = "test_handlers.db"
-    if os.path.exists(path):
-        os.remove(path)
-    db = sqlite3.connect(path)
-    monkeypatch.setattr("database.database", db)
-    monkeypatch.setattr("database.cursor", db.cursor())
-    apply_all_migrations()
+@pytest.fixture()
+def database() -> Generator[sqlite3.Connection]:
     handlers.set_teacher_code("secret")
-    yield
-    db.close()
+    with sqlite3.connect(":memory:") as test_db:
+        apply_all_migrations(test_db)
+        yield test_db
 
 
 def texts(replies):
@@ -47,8 +42,8 @@ def press(user, replies, label):
     return on_callback(user, payload_for(replies, label))
 
 
-def make_teacher_with_class(max_id="t", grade="8", size="3"):
-    t = User.from_max_id(max_id)
+def make_teacher_with_class(database: sqlite3.Connection, max_id="t", grade="8", size="3"):
+    t = User.from_max_id(database, max_id)
     r = on_start(t)
     r = press(t, r, "Я учитель")
     r = on_text(t, "secret")
@@ -60,8 +55,8 @@ def make_teacher_with_class(max_id="t", grade="8", size="3"):
 
 # ---------------- А. Учитель ----------------
 
-def test_teacher_onboarding_full():
-    t = User.from_max_id("t")
+def test_teacher_onboarding_full(database: sqlite3.Connection):
+    t = User.from_max_id(database, "t")
     r = on_start(t)
     assert labels(r) == ["Я ученик", "Я учитель"]                    # шаг 1
     r = press(t, r, "Я учитель")
@@ -74,15 +69,15 @@ def test_teacher_onboarding_full():
     assert labels(r) == ["Есть код", "Нет, сам по себе"]
 
 
-def test_teacher_creates_class_and_report_placeholder():
-    t, code = make_teacher_with_class()
+def test_teacher_creates_class_and_report_placeholder(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
     assert len(code) == 4 and not set(code) & set("0O1I")             # шаг 7
     assert t.state == UserState.IDLE
     assert "Номера: 1–3" in texts(on_start(t)) or "Классов создано: 1" in texts(on_start(t))
 
 
-def test_teacher_size_validation():
-    t = User.from_max_id("t")
+def test_teacher_size_validation(database: sqlite3.Connection):
+    t = User.from_max_id(database, "t")
     r = press(t, on_start(t), "Я учитель")
     r = on_text(t, "secret")
     r = press(t, r, "8")
@@ -92,8 +87,8 @@ def test_teacher_size_validation():
     assert "Код класса" in texts(r)
 
 
-def test_teacher_second_class():
-    t, code1 = make_teacher_with_class()
+def test_teacher_second_class(database: sqlite3.Connection):
+    t, code1 = make_teacher_with_class(database)
     r = on_text(t, "/class")                                          # шаг 9
     assert labels(r) == ["7", "8", "9", "10", "11"]
     r = press(t, r, "9")
@@ -104,9 +99,9 @@ def test_teacher_second_class():
 
 # ---------------- Б. Ученик ----------------
 
-def test_student_onboarding_full():
-    t, code = make_teacher_with_class()
-    s = User.from_max_id("s")
+def test_student_onboarding_full(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s = User.from_max_id(database, "s")
     r = on_start(s)
     r = press(s, r, "Я ученик")                                       # шаг 11
     assert labels(r) == ["Есть код", "Нет, сам по себе"]
@@ -129,10 +124,10 @@ def test_student_onboarding_full():
     assert "Хорошо" in texts(press(s, r, "Продолжить"))
 
 
-def test_student_number_taken():
-    t, code = make_teacher_with_class()
+def test_student_number_taken(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
     for mid in ("s1", "s2"):
-        s = User.from_max_id(mid)
+        s = User.from_max_id(database, mid)
         r = press(s, on_start(s), "Я ученик")
         r = press(s, r, "Есть код")
         r = on_text(s, code)
@@ -142,9 +137,9 @@ def test_student_number_taken():
     assert "уже занят" in texts(r)
 
 
-def test_student_confirm_no_reenters_number():
-    t, code = make_teacher_with_class()
-    s = User.from_max_id("s")
+def test_student_confirm_no_reenters_number(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s = User.from_max_id(database, "s")
     r = press(s, on_start(s), "Я ученик")
     r = press(s, r, "Есть код")
     r = on_text(s, code)
@@ -155,8 +150,8 @@ def test_student_confirm_no_reenters_number():
     assert "номер 3" in texts(r)
 
 
-def test_student_solo_and_other_grade():
-    s = User.from_max_id("s")
+def test_student_solo_and_other_grade(database: sqlite3.Connection):
+    s = User.from_max_id(database, "s")
     r = press(s, on_start(s), "Я ученик")
     r = press(s, r, "Нет, сам по себе")
     assert labels(r) == ["7", "8", "9", "10", "11", "Другое"]
@@ -166,19 +161,19 @@ def test_student_solo_and_other_grade():
     assert s.state == UserState.IDLE
     assert "9 класс, без кода" in texts(on_start(s))
 
-    o = User.from_max_id("o")
+    o = User.from_max_id(database, "o")
     r = press(o, on_start(o), "Я ученик")
     r = press(o, r, "Нет, сам по себе")
     r = press(o, r, "Другое")
     assert "без привязки" in texts(r) and labels(r) == ["Понятно, начнем"]
 
 
-def test_unfinished_class_code_is_not_accepted():
-    t = User.from_max_id("t")
+def test_unfinished_class_code_is_not_accepted(database: sqlite3.Connection):
+    t = User.from_max_id(database, "t")
     r = press(t, on_start(t), "Я учитель")
     on_text(t, "secret")
     cls = t.current_created_class  # размер еще не задан
-    s = User.from_max_id("s")
+    s = User.from_max_id(database, "s")
     r = press(s, on_start(s), "Я ученик")
     r = press(s, r, "Есть код")
     assert "Такого кода нет" in texts(on_text(s, cls.code))
@@ -186,8 +181,8 @@ def test_unfinished_class_code_is_not_accepted():
 
 # ---------------- Старые кнопки, молчание, команды ----------------
 
-def test_stale_button_repeats_current_question():
-    s = User.from_max_id("s")
+def test_stale_button_repeats_current_question(database: sqlite3.Connection):
+    s = User.from_max_id(database, "s")
     r0 = on_start(s)
     r = press(s, r0, "Я ученик")
     r = press(s, r0, "Я учитель")                                     # старая кнопка
@@ -195,8 +190,8 @@ def test_stale_button_repeats_current_question():
     assert labels(r) == ["Есть код", "Нет, сам по себе"]
 
 
-def test_bot_never_silent():
-    s = User.from_max_id("s")
+def test_bot_never_silent(database: sqlite3.Connection):
+    s = User.from_max_id(database, "s")
     assert texts(on_text(s, "ыыы"))                                   # до /start
     r = press(s, on_start(s), "Я ученик")
     assert texts(on_text(s, "ыыы"))                                   # посреди онбординга
@@ -209,16 +204,16 @@ def test_bot_never_silent():
     assert texts(on_text(s, "/task"))                                 # заглушка, но не молчание
 
 
-def test_teacher_unknown_and_help():
-    t, code = make_teacher_with_class()
+def test_teacher_unknown_and_help(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
     assert "/report" in texts(on_text(t, "/help"))
     assert "Не понял" in texts(on_text(t, "привет"))
 
 
 # ---------------- /number, /free, /reset ----------------
 
-def _joined_student(mid, code, number):
-    s = User.from_max_id(mid)
+def _joined_student(database: sqlite3.Connection, mid, code, number):
+    s = User.from_max_id(database, mid)
     r = press(s, on_start(s), "Я ученик")
     r = press(s, r, "Есть код")
     on_text(s, code)
@@ -228,9 +223,9 @@ def _joined_student(mid, code, number):
     return s
 
 
-def test_number_change_and_free():
-    t, code = make_teacher_with_class()
-    s = _joined_student("s", code, 2)
+def test_number_change_and_free(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s = _joined_student(database, "s", code, 2)
     assert "нет класса" not in texts(on_text(s, "/number"))
     assert "текущий" in texts(on_text(s, "2"))
     assert "Теперь ты номер 3" in texts(on_text(s, "3"))              # шаг 32
@@ -243,8 +238,8 @@ def test_number_change_and_free():
     assert "Теперь ты номер 1" in texts(on_text(s, "1"))
 
 
-def test_number_for_solo_student():
-    s = User.from_max_id("s")
+def test_number_for_solo_student(database: sqlite3.Connection):
+    s = User.from_max_id(database, "s")
     r = press(s, on_start(s), "Я ученик")
     r = press(s, r, "Нет, сам по себе")
     r = press(s, r, "8")
@@ -252,9 +247,9 @@ def test_number_for_solo_student():
     assert "нет класса" in texts(on_text(s, "/number"))
 
 
-def test_reset_student_and_teacher():
-    t, code = make_teacher_with_class()
-    s = _joined_student("s", code, 1)
+def test_reset_student_and_teacher(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s = _joined_student(database, "s", code, 1)
     r = on_text(s, "/reset")                                          # шаг 34
     assert labels(r) == ["Да, сбросить", "Нет"]
     assert "Оставил" in texts(press(s, r, "Нет"))
@@ -270,4 +265,4 @@ def test_reset_student_and_teacher():
     # классы остались за аккаунтом
     r = press(t, r, "Я учитель")
     on_text(t, "secret")
-    assert len([c for c in User.from_max_id("t").classes]) >= 1
+    assert len([c for c in User.from_max_id(database, "t").classes]) >= 1
