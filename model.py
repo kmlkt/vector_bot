@@ -5,14 +5,22 @@ from enum import StrEnum, auto
 class UserRole(StrEnum):
     STUDENT = auto()
     TEACHER = auto()
-
+   
 
 class UserState(StrEnum):
     CHOOSE_ROLE = auto()
     ENTER_HAS_CODE = auto()
     ENTER_CODE = auto()
     ENTER_NUMBER_IN_CLASS = auto()
-
+    ENTER_GRADE = auto()
+    CONFIRM_NUMBER = auto()
+    IDLE = auto()
+    ENTER_TEACHER_CODE = auto()
+    ENTER_CLASS_GRADE = auto()
+    ENTER_CLASS_SIZE = auto()
+    CONSENT = auto()            # шаг согласия перед первыми карточками
+    RESET_CONFIRM = auto()      # ждем [Да, сбросить] / [Нет]
+    ENTER_NEW_NUMBER = auto()   # /number или учитель освободил номер
 
 class EventType(StrEnum):
     SHOWN = auto()

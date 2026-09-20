@@ -122,3 +122,5 @@ dmypy.json
 tempCodeRunnerFile.py
 .ruff_cache/
 .pypirc
+storage/console.db
+test_handlers.db
