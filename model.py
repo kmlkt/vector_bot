@@ -18,6 +18,9 @@ class UserState(StrEnum):
     ENTER_TEACHER_CODE = auto()
     ENTER_CLASS_GRADE = auto()
     ENTER_CLASS_SIZE = auto()
+    CONSENT = auto()            # шаг согласия перед первыми карточками
+    RESET_CONFIRM = auto()      # ждем [Да, сбросить] / [Нет]
+    ENTER_NEW_NUMBER = auto()   # /number или учитель освободил номер
 
 class EventType(StrEnum):
     SHOWN = auto()
