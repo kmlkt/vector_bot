@@ -48,11 +48,35 @@ docker compose up
 $env:APP_VERSION="latest" ; docker compose -f compose.prod.yaml up
 ```
 
-Баш (не проверял):
+Баш:
 
 ```sh
-$APP_VERSION="latest" & docker compose -f compose.prod.yaml up
+APP_VERSION=latest docker compose up -d
 ```
+
+# Устройство нашего сервера
+
+Папка проекта на сервере `/opt/vector_bot`. В ней:
+
+`compose.yaml` - Скрипт docker compose, идентичен compose.prod.yaml из репозитория
+
+`.env` - переменные окружения
+
+`storage/database.db` - БД
+
+`backups/` - бекапы БД
+
+Запуск: 
+```sh 
+APP_VERSION=0.0.7 docker compose up -d
+```
+Вместо 0.0.7 - тег версии контейнера (тег из гита, ветка из гита, хеш коммита из гита, latest=последний тег из гита)
+
+Конфиг Caddy глобальный: `/etc/caddy/Caddyfile`
+
+Для бекапов cron: `sudo crontab -e`
+
+Логи приложения: `docker logs vector_bot-app-1`
 
 # Использование data layer
 
