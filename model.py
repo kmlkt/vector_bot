@@ -21,6 +21,8 @@ class UserState(StrEnum):
     CONSENT = auto()            # шаг согласия перед первыми карточками
     RESET_CONFIRM = auto()      # ждем [Да, сбросить] / [Нет]
     ENTER_NEW_NUMBER = auto()   # /number или учитель освободил номер
+    CHOOSING = auto() # ожидание выбора карточки
+    SOLVING = auto() # ожидание ответа на карточку
 
 class EventType(StrEnum):
     SHOWN = auto()

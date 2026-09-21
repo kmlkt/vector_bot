@@ -92,7 +92,7 @@ async def text(event: MessageCreated):
 
 
 async def main():
-    scheduler.run_scheduler(database, lambda x: _send(x, handlers.on_task(x)), TASK_SEND_TIME)
+    scheduler.run_scheduler(database, lambda x: _send(x, handlers.show_task(x)), TASK_SEND_TIME)
     await dp.start_polling(bot)
 
 

@@ -17,8 +17,9 @@ def run_scheduler(database: sqlite3.Connection, send_tasks: Callable[[User], Awa
     async def send_tasks_everybody():
         users = User.all_idle_students(database)
         logging.info("Отправляем задачи юзерам " + ",".join(str(x.id) for x in users))
-        for max_id in users:
-            await send_tasks(max_id)
+        for user in users:
+            if not user.task_limit_reached:
+                await send_tasks(user)
 
     scheduler = AsyncIOScheduler()
 
