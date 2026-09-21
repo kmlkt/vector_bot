@@ -240,6 +240,22 @@ class User(BaseModel):
         task_ids: Generator[str] = (y for x in task_ids_groups for y in x.split(","))
         return [Task.by_id(x) for x in task_ids]
 
+    @property
+    def answered_today(self) -> int:
+        return fetch_value(self.database.execute(
+            "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered' "
+            "AND date(created_at)=date('now')",
+            [self.id],
+        ))
+
+    @property
+    def task_limit_reached(self) -> bool:
+        return self.answered_today >= 3
+
+    @property
+    def tasks_left_today(self) -> int:
+        return max(0, 3 - self.answered_today)
+
 
 class Class(BaseModel):
     def __init__(self, database: sqlite3.Connection, id: int) -> None:

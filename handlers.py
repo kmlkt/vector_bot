@@ -76,21 +76,10 @@ def _remember(user: User, replies: list[Reply]) -> list[Reply]:
     user.pending_buttons = [Button(p, None) for p in payloads]
     return replies
 
-# ---------------------------------------------------------------------------
-# Подбор заданий (пока заглушка, жду Карима)
-# ---------------------------------------------------------------------------
 
-def pick_three_tasks(database, user) -> list[Task]:
-    """ЗАГЛУШКА. Доработаем с Каримом
-        pick_three_tasks(database: sqlite3.Connection, user: User) -> list[Task]
-    Возвращает ровно 3 задания или пустой список, если их не осталось.
-    """
-    from tasks import TASKS
-    return TASKS[:3]
-
-"""Если обязательно нужно вытаскивать слова ниже из texts.md, то нужно изменить 
-   texts.md, чтобы был ключ для texts.T 
-   Например: 
+"""Если обязательно нужно вытаскивать слова ниже из texts.md, то нужно изменить
+   texts.md, чтобы был ключ для texts.T
+   Например:
 
    `axis.H`
     Люди
@@ -113,29 +102,12 @@ def _axis_human(axis) -> str:
     return _AXIS_HUMAN[str(axis)]
 
 
-def _answered_today(user: User) -> int:
-    row = user.database.execute(
-        "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered' "
-        "AND date(created_at)=date('now')",
-        [user.id],
-    ).fetchone()
-    return row[0] if row else 0
-
-
-def _task_limit_reached(user: User) -> bool:
-    return _answered_today(user) >= 3
-
-
-def _tasks_left_today(user: User) -> int:
-    return max(0, 3 - _answered_today(user))
-
-
 # ---------------------------------------------------------------------------
 # Задание дня
 # ---------------------------------------------------------------------------
 
 # Выдача 3 карточек
-def _show_task(user: User) -> list[Reply]:
+def show_task(user: User) -> list[Reply]:
     if user.role != UserRole.STUDENT:
         return [reply("error.generic")]
 
@@ -144,18 +116,18 @@ def _show_task(user: User) -> list[Reply]:
         return [reply("task.expect_card")]
     if user.state == UserState.SOLVING:
         return [reply("task.expect_answer")]
-    
+
     if user.state != UserState.IDLE:
         # онбординг не закончен, повтор вопроса
         return _remember(user, _prompt_for_state(user))
-    if _task_limit_reached(user):
+    if user.task_limit_reached:
         return [reply("task.limit_reached")]
 
-    tasks = pick_three_tasks(user.database, user)   # функция Карима
+    tasks = Task.choose3(user.shown_tasks)
     if not tasks:
         return [reply("task.none_left")] # Если ученик пройдет все задания
 
-    Event.create_shown(user.database, user, tasks)
+    Event.create_shown(user, tasks)
     user.state = UserState.CHOOSING
 
     rows = [[(t.title, f"CARD_{t.id}")] for t in tasks]
@@ -170,11 +142,11 @@ def _choose_card(user: User, task_id: str) -> list[Reply]:
     except KeyError:
         return _remember(user, _prompt_for_state(user))
 
-    Event.create_chosen(user.database, user, task)
+    Event.create_chosen(user, task)
     user.state = UserState.SOLVING
 
-    letters = BUTTONS["task.body"]  
-    # Сбор строки вариантов                     
+    letters = BUTTONS["task.body"]
+    # Сбор строки вариантов
     options_text = "\n".join(
         f"{letters[i]}. {opt}" for i, opt in enumerate(task.options)
     )
@@ -196,13 +168,13 @@ def _answer_task(user: User, task_id: str, answer: int) -> list[Reply]:
     if not (0 <= answer < len(task.options)):
         return [reply("task.expect_answer")]
 
-    Event.create_answered(user.database, user, task, answer)
+    Event.create_answered(user, task, answer)
     user.state = UserState.IDLE
     user.pending_buttons = []
 
     axis_name = _axis_human(task.axis)
     solved = user.solved_count
-    left = _tasks_left_today(user)
+    left = user.tasks_left_today
 
     feedback_text = task.feedback[answer]
     replies = [Reply(feedback_text)]
@@ -228,7 +200,7 @@ def on_start(user: User) -> list[Reply]:
         return [reply("task.expect_card")]
     if user.state == UserState.SOLVING:
         return [reply("task.expect_answer")]
-    
+
     if user.state not in (UserState.IDLE, None):
         # онбординг не закончен: повторяем текущий вопрос, второй регистрации нет
         return _remember(user, _prompt_for_state(user))
@@ -255,7 +227,7 @@ def on_callback(user: User, payload: str) -> list[Reply]:
         return _choose_role(user, payload)
     if payload == "CONTINUE":
         user.pending_buttons = []
-        return _show_task(user)
+        return show_task(user)
     if payload == "RESET":
         return _reset_ask(user)
     if payload == "RESET_YES":
@@ -294,7 +266,7 @@ def on_callback(user: User, payload: str) -> list[Reply]:
         if payload == "CONSENT_OK" and state == UserState.CONSENT:
             user.state = UserState.IDLE
             user.pending_buttons = []
-            return _show_task(user)
+            return show_task(user)
 
     if role == UserRole.TEACHER:
         if payload.startswith("GRADE_") and state == UserState.ENTER_CLASS_GRADE:
@@ -344,12 +316,6 @@ def on_text(user: User, text: str) -> list[Reply]:
     return [reply("error.generic")]
 
 
-def on_task(user: User) -> list[Reply]:
-    tasks = Task.choose3(user.shown_tasks)
-    Event.create_shown(user, tasks)
-    return [Reply(",".join(f"{x.title} ({x.axis})" for x in tasks))]
-
-
 # ---------------------------------------------------------------------------
 # Команды
 # ---------------------------------------------------------------------------
@@ -376,7 +342,7 @@ def _command(user: User, text: str) -> list[Reply]:
     if cmd == "/free" and user.role == UserRole.TEACHER:
         return _free(user, arg)
     if cmd == "/task":
-        return _show_task(user)
+        return show_task(user)
     if cmd in ("/profile", "/report", "/report_detail"):
         return [reply("dev.not_ready")]  # задание дня, профиль, отчет — следующие этапы
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
