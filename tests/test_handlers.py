@@ -1,7 +1,5 @@
 """Онбординг целиком без MAX: шаги 1–18 и 30–35 из docs/smoke-checklist.md."""
 
-from collections.abc import Generator
-import os
 import sqlite3
 
 import pytest
@@ -9,16 +7,12 @@ import pytest
 import handlers
 from database import User
 from handlers import on_callback, on_start, on_text
-from migration import apply_all_migrations
 from model import UserRole, UserState
 
 
-@pytest.fixture()
-def database() -> Generator[sqlite3.Connection]:
+@pytest.fixture(autouse=True)
+def set_teacher_code():
     handlers.set_teacher_code("secret")
-    with sqlite3.connect(":memory:") as test_db:
-        apply_all_migrations(test_db)
-        yield test_db
 
 
 def texts(replies):
@@ -119,11 +113,11 @@ def test_student_onboarding_full(database: sqlite3.Connection):
     assert s.state == UserState.CONSENT
     r = press(s, r, "Понятно, начнем")  # выдача карточек
     assert s.state == UserState.CHOOSING
-    assert len(labels(r)) == 3                       
-    assert len(set(labels(r))) == 3                  
+    assert len(labels(r)) == 3
+    assert len(set(labels(r))) == 3
     r = press(s, r, labels(r)[0]) # выбор карточки
     assert s.state == UserState.SOLVING
-    assert labels(r) == ["А", "Б", "В", "Г"]         
+    assert labels(r) == ["А", "Б", "В", "Г"]
     r = press(s, r, "А") # ответы
     assert s.state == UserState.IDLE
 
