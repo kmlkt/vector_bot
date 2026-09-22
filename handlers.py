@@ -333,6 +333,8 @@ def _command(user: User, text: str) -> list[Reply]:
         return on_start(user)
     if cmd == "/reset":
         return _reset_ask(user)
+    if cmd in ("/demo", "/demo_teacher"):
+        return _demo(user, cmd)
     if user.role is None:
         return on_start(user)
     if cmd == "/number":
@@ -346,6 +348,24 @@ def _command(user: User, text: str) -> list[Reply]:
     if cmd in ("/profile", "/report", "/report_detail"):
         return [reply("dev.not_ready")]  # задание дня, профиль, отчет — следующие этапы
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
+
+
+def _demo(user: User, cmd: str) -> list[Reply]:
+    """Тестовый аккаунт для жюри: только для незарегистрированного аккаунта.
+    /demo — ученик с историей за 12 дней, /demo_teacher — учитель с готовым классом.
+    Данные сгенерированы (seed.py), об этом говорит demo.notice."""
+    if user.role is not None:
+        return _remember(user, _prompt_for_state(user)) if user.state != UserState.IDLE else \
+            [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
+    import seed  # локальный импорт: seed тянет tasks и нужен только здесь
+    if cmd == "/demo_teacher":
+        cls = seed.attach_demo_teacher(user)
+        user.pending_buttons = []
+        return [reply("demo.notice"),
+                reply("teacher.class_created", class_code=cls.code, size=cls.size)]
+    seed.attach_demo_student(user)
+    user.pending_buttons = []
+    return [reply("demo.notice"), reply("start.continue")]
 
 
 # ---------------------------------------------------------------------------

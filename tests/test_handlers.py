@@ -280,3 +280,38 @@ def test_reset_student_and_teacher(database: sqlite3.Connection):
     r = press(t, r, "Я учитель")
     on_text(t, "secret")
     assert len([c for c in User.from_max_id(database, "t").classes]) >= 1
+
+
+# ---------------- Тестовые аккаунты (seed) ----------------
+
+def test_demo_student_has_history(database: sqlite3.Connection):
+    j = User.from_max_id(database, "jury")
+    r = on_text(j, "/demo")
+    assert "сгенерированной историей" in texts(r)
+    assert j.role == UserRole.STUDENT and j.state == UserState.IDLE
+    assert j.solved_count >= 8
+    # история в прошлом: сегодня лимит не тронут
+    assert j.tasks_left_today == 3
+    # повторный /demo ничего не ломает
+    assert "Не понял" in texts(on_text(j, "/demo"))
+
+
+def test_demo_teacher_has_seeded_class(database: sqlite3.Connection):
+    j = User.from_max_id(database, "jury-t")
+    r = on_text(j, "/demo_teacher")
+    assert "Код класса" in texts(r)
+    assert j.role == UserRole.TEACHER and len(j.classes) == 1
+    cls = j.classes[0]
+    assert cls.size == 27
+    bound = database.execute("SELECT COUNT(*) FROM users WHERE class_id=?", [cls.id]).fetchone()[0]
+    assert bound == 20
+    answered = database.execute(
+        "SELECT COUNT(*) FROM events e JOIN users u ON u.id=e.user_id WHERE u.class_id=? AND e.type='answered'",
+        [cls.id]).fetchone()[0]
+    assert answered >= 150
+
+
+def test_demo_not_for_registered(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    assert "Не понял" in texts(on_text(t, "/demo"))
+    assert len(t.classes) == 1
