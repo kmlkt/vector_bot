@@ -562,8 +562,15 @@ def _report_detail_class(user: User, class_code: str) -> list[Reply]:
         return f"{count} {word}"
 
     clas = Class.from_code(user.database, class_code)
+    students = clas.students
+
+    user.state = UserState.IDLE
+    user.pending_buttons = []
+
+    if len(students) == 0:
+        return [reply("report.detail.empty")]
     rows = [f"Класс {clas.code}, по ученикам:"]
-    for s in clas.students:
+    for s in students:
         p = profile(s.events, TASKS_BY_ID)
         axes = leading_axes(p)
         axes_info = "" if len(axes) == 0 \
@@ -572,8 +579,6 @@ def _report_detail_class(user: User, class_code: str) -> list[Reply]:
             f"№{s.number_in_class}{axes_info}, {zadanie_declension(s.solved_count)}"
         )
     rows.append("Только номера. Кто под каким — в вашем списке.")
-    user.state = UserState.IDLE
-    user.pending_buttons = []
     return [Reply("\n".join(rows))]
 
 # ---------------------------------------------------------------------------
