@@ -22,6 +22,9 @@ docker compose up --build   # сборка ~1 минута, бот отвеча�
 | `BOT_TOKEN` | токен бота MAX, выдан организаторами | — |
 | `TEACHER_CODE` | код, который вводит учитель при регистрации; ученики его не знают | `secret` |
 | `TASK_SEND_TIME` | время ежедневной рассылки карточек, формат cron, **в часовом поясе сервера** (в Docker — UTC: для 16:00 МСК ставить `0 13 * * *`) | `0 13 * * *` |
+| `RUN_MODE` | режим работы бота: `WEBHOOK` или `POLLING`. По умолчанию - `POLLING` | `POLLING` |
+| `WEBHOOK_URL` | адрес вебхука (для `RUN_MODE`=`WEBHOOK`)  | `https://elqu.ru/webhook` |
+| `WEBHOOK_SECRET` | секрет вебхука (для `RUN_MODE`=`WEBHOOK`)  | `secret` |
 
 Секретов в репозитории нет, `.env` в `.gitignore`, пример — `.env.example`.
 

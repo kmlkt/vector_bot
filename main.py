@@ -10,17 +10,20 @@ import os
 import sqlite3
 
 from dotenv import load_dotenv
+from fastapi import FastAPI
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import CommandStart
 from maxapi.types import BotStarted, ButtonsPayload, MessageCreated
 from maxapi.types.attachments import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
+from maxapi.webhook.fastapi import FastAPIMaxWebhook
 
 import handlers
 from database import User
 from handlers import Reply
 from migration import apply_all_migrations
 import scheduler
+import uvicorn
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -28,6 +31,9 @@ load_dotenv()
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 handlers.set_teacher_code(os.getenv("TEACHER_CODE"))
 TASK_SEND_TIME = os.getenv("TASK_SEND_TIME")
+RUN_MODE = os.getenv("RUN_MODE") or "POLLING"
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 
 DB_PATH = "./storage/database.db"
 os.makedirs("./storage", exist_ok=True)
@@ -90,10 +96,28 @@ async def text(event: MessageCreated):
     user = User.from_max_id(database, str(event.message.sender.user_id))
     await _answer(event, _safe(handlers.on_text, user, event.message.body.text))
 
+async def run_webhook():
+    webhook = FastAPIMaxWebhook(dp=dp, bot=bot, secret=WEBHOOK_SECRET)
+    app = FastAPI(lifespan=webhook.lifespan)
+
+    @app.get("/")
+    def index():
+        return "Bot is working"
+
+    webhook.setup(app, path="/webhook")
+    await bot.subscribe_webhook(url=WEBHOOK_URL, secret=WEBHOOK_SECRET)
+
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080)
+    server = uvicorn.Server(config)
+    await server.serve()
+
 
 async def main():
     scheduler.run_scheduler(database, lambda x: _send(x, handlers.show_task(x)), TASK_SEND_TIME)
-    await dp.start_polling(bot)
+    if RUN_MODE == "WEBHOOK":
+        await run_webhook()
+    else:
+        await dp.start_polling(bot)
 
 
 if __name__ == "__main__":

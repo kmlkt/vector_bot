@@ -5,6 +5,9 @@ services:
       BOT_TOKEN: ${BOT_TOKEN}
       TEACHER_CODE: ${TEACHER_CODE}
       TASK_SEND_TIME: ${TASK_SEND_TIME}
+      RUN_MODE: ${RUN_MODE}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
     volumes:
       - ./storage:/app/storage
     ports:
