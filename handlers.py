@@ -32,7 +32,7 @@ from database import (
     ValidationError,
 )
 from model import TaskAxis, UserRole, UserState
-from report import Report
+from report import Range, Report
 from tasks import Task
 from texts import BUTTONS, T
 from tasks import Task
@@ -348,7 +348,7 @@ def _command(user: User, text: str) -> list[Reply]:
         return show_task(user)
     if cmd == "/report":
         return _report(user)
-    if cmd in ("/profile", "/report", "/report_detail"):
+    if cmd in ("/profile", "/report_detail"):
         return [reply("dev.not_ready")]  # задание дня, профиль, отчет — следующие этапы
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
 
@@ -476,24 +476,39 @@ def _report(user: User) -> list[Reply]:
 
 
 def _report_class(user: User, class_code: str) -> list[Reply]:
+    def uchenik_declension(count: int):
+        word = "учеников"
+        if not (11 <= (count % 100) <= 19):
+            if count % 10 == 1:
+                word = "ученик"
+            if 2 <= (count % 10) <= 4:
+               word = "ученика"
+
+        return f"{count} {word}"
+
+    def ranges_join(ranges: list[Range]):
+        if len(ranges) == 0:
+            return "никто"
+        return ", ".join(f"№{x}" for x in ranges)
+
     clas = Class.from_code(user.database, class_code)
     report = Report(clas)
     return [reply(
         "report.body",
         class_code=class_code,
         grade=clas.grade,
-        size=clas.size,
-        bound_numbers=", ".join(str(x) for x in report.bound),
-        free_numbers=", ".join(str(x) for x in report.not_bound),
-        active=report.active,
-        solved_10=report.solved10,
-        not_started_numbers=report.not_started,
+        size=uchenik_declension(clas.size or 0),
+        bound_numbers=ranges_join(report.bound),
+        free_numbers=ranges_join(report.not_bound),
+        active=uchenik_declension(report.active),
+        solved_10=uchenik_declension(report.solved10),
+        not_started_numbers=ranges_join(report.not_started),
         avg_H=report.profile[TaskAxis.H],
         avg_T=report.profile[TaskAxis.T],
         avg_S=report.profile[TaskAxis.S],
         avg_I=report.profile[TaskAxis.I],
         avg_N=report.profile[TaskAxis.N],
-        distinct_count=report.distinct_profiles,
+        distinct_count=uchenik_declension(report.distinct_profiles),
     )]
 
 # ---------------------------------------------------------------------------

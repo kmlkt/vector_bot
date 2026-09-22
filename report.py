@@ -36,21 +36,21 @@ class Report:
     not_bound: list[Range]
     active: int
     solved10: int
-    not_started: list[int]
+    not_started: list[Range]
     profile: dict[TaskAxis, float]
     distinct_profiles: int
 
     def __init__(self, clas: Class):
         self.clas = clas
-        linked_at_number = [
-            clas.student_at_number(i + 1) is not None
+        student_at_number = [
+            clas.student_at_number(i + 1)
             for i in range(clas.size or 0)
         ]
-        self.bound = Range.from_list(linked_at_number)
-        self.not_bound = Range.from_list([not x for x in linked_at_number])
+        self.bound = Range.from_list([x is not None for x in student_at_number])
+        self.not_bound = Range.from_list([x is None for x in student_at_number])
         students = clas.students
         self.active = sum(1 for x in students if x.is_active)
-        self.not_started = [x.number_in_class for x in students if x.solved_count == 0]
+        self.not_started = Range.from_list([x is not None and x.solved_count==0 for x in student_at_number])
         self.solved10 = sum(1 for x in students if x.solved_count >= 10)
         solved5_profiles = [
             profile(x.events, TASKS_BY_ID)
