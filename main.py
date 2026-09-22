@@ -117,6 +117,7 @@ async def main():
     if RUN_MODE == "WEBHOOK":
         await run_webhook()
     else:
+        await bot.delete_webhook()
         await dp.start_polling(bot)
 
 
