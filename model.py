@@ -24,6 +24,7 @@ class UserState(StrEnum):
     CHOOSING = auto() # ожидание выбора карточки
     SOLVING = auto() # ожидание ответа на карточку
     REPORT_CHOOSE_CLASS = auto()
+    REPORT_DETAIL_CHOOSE_CLASS = auto()
 
 class EventType(StrEnum):
     SHOWN = auto()

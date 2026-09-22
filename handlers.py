@@ -33,7 +33,8 @@ from database import (
 )
 from model import TaskAxis, UserRole, UserState
 from report import Range, Report
-from tasks import Task
+from scoring import AXIS_NAMES, leading_axes, profile
+from tasks import TASKS_BY_ID, Task
 from texts import BUTTONS, T
 from tasks import Task
 
@@ -278,6 +279,8 @@ def on_callback(user: User, payload: str) -> list[Reply]:
             return [reply("teacher.ask_size")]
         if state == UserState.REPORT_CHOOSE_CLASS:
             return _report_class(user, payload)
+        if state == UserState.REPORT_DETAIL_CHOOSE_CLASS:
+            return _report_detail_class(user, payload)
 
     return _remember(user, _prompt_for_state(user))
 
@@ -350,7 +353,9 @@ def _command(user: User, text: str) -> list[Reply]:
         return show_task(user)
     if cmd == "/report":
         return _report(user)
-    if cmd in ("/profile", "/report_detail"):
+    if cmd == "/report_detail":
+        return _report_detail(user)
+    if cmd in ("/profile"):
         return [reply("dev.not_ready")]  # задание дня, профиль, отчет — следующие этапы
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
 
@@ -486,6 +491,10 @@ def _free(user: User, arg: str) -> list[Reply]:
     return [reply("free.not_found", number=number)]
 
 
+# ---------------------------------------------------------------------------
+# /report и /report_detail
+# ---------------------------------------------------------------------------
+
 def _report(user: User) -> list[Reply]:
     classes = user.classes
     if len(classes) == 0:
@@ -502,7 +511,7 @@ def _report_class(user: User, class_code: str) -> list[Reply]:
             if count % 10 == 1:
                 word = "ученик"
             if 2 <= (count % 10) <= 4:
-               word = "ученика"
+                word = "ученика"
 
         return f"{count} {word}"
 
@@ -513,6 +522,8 @@ def _report_class(user: User, class_code: str) -> list[Reply]:
 
     clas = Class.from_code(user.database, class_code)
     report = Report(clas)
+    user.state = UserState.IDLE
+    user.pending_buttons = []
     return [reply(
         "report.body",
         class_code=class_code,
@@ -530,6 +541,40 @@ def _report_class(user: User, class_code: str) -> list[Reply]:
         avg_N=report.profile[TaskAxis.N],
         distinct_count=uchenik_declension(report.distinct_profiles),
     )]
+
+def _report_detail(user: User) -> list[Reply]:
+    classes = user.classes
+    if len(classes) == 0:
+        return [reply("report.no_classes")]
+    user.state = UserState.REPORT_DETAIL_CHOOSE_CLASS
+    return _remember(user, [Reply(T("report.choose_class").split("\n")[0],
+        [[(x.code, x.code)] for x in classes])])
+
+def _report_detail_class(user: User, class_code: str) -> list[Reply]:
+    def zadanie_declension(count: int):
+        word = "заданий"
+        if not (11 <= (count % 100) <= 19):
+            if count % 10 == 1:
+                word = "задание"
+            if 2 <= (count % 10) <= 4:
+                word = "задания"
+
+        return f"{count} {word}"
+
+    clas = Class.from_code(user.database, class_code)
+    rows = [f"Класс {clas.code}, по ученикам:"]
+    for s in clas.students:
+        p = profile(s.events, TASKS_BY_ID)
+        axes = leading_axes(p)
+        axes_info = "" if len(axes) == 0 \
+            else f" - {"/".join(AXIS_NAMES[x] for x in axes)}"
+        rows.append(
+            f"№{s.number_in_class}{axes_info}, {zadanie_declension(s.solved_count)}"
+        )
+    rows.append("Только номера. Кто под каким — в вашем списке.")
+    user.state = UserState.IDLE
+    user.pending_buttons = []
+    return [Reply("\n".join(rows))]
 
 # ---------------------------------------------------------------------------
 # /reset и /number
