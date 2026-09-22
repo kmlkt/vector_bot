@@ -1,0 +1,219 @@
+{
+  "generated_at": "2026-09-22 06:00",
+  "mock": true,
+  "note": "модельные данные: история сгенерирована seed.py, это не ответы реальных детей",
+  "class_code": "96U5",
+  "grade": 8,
+  "size": 12,
+  "bound": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "free": [
+    11,
+    12
+  ],
+  "active_days": 14,
+  "active": 10,
+  "passed_10": 8,
+  "not_started": [],
+  "distinct": 6,
+  "average_profile": {
+    "H": 0.331,
+    "T": 0.2858,
+    "S": 0.4254,
+    "I": 0.2835,
+    "N": 0.2143
+  },
+  "axis_names": {
+    "H": "Люди",
+    "T": "Техника",
+    "S": "Знаки",
+    "I": "Образы",
+    "N": "Природа"
+  },
+  "students": [
+    {
+      "number": 1,
+      "solved": 19,
+      "scores": {
+        "H": 0.4545,
+        "T": 0.3667,
+        "S": 0.2364,
+        "I": 0.1667,
+        "N": 0.2
+      },
+      "leading": [
+        "H",
+        "T"
+      ],
+      "distinct": false,
+      "active": true,
+      "last_answered": "2026-09-21"
+    },
+    {
+      "number": 2,
+      "solved": 15,
+      "scores": {
+        "H": 0.3333,
+        "T": 0.6889,
+        "S": 0.2222,
+        "I": 0.2,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "distinct": true,
+      "active": true,
+      "last_answered": "2026-09-21"
+    },
+    {
+      "number": 3,
+      "solved": 20,
+      "scores": {
+        "H": 0.3333,
+        "T": 0.25,
+        "S": 0.7667,
+        "I": 0.1667,
+        "N": 0.05
+      },
+      "leading": [
+        "S"
+      ],
+      "distinct": true,
+      "active": true,
+      "last_answered": "2026-09-20"
+    },
+    {
+      "number": 4,
+      "solved": 14,
+      "scores": {
+        "H": 0.125,
+        "T": 0.0667,
+        "S": 0.2,
+        "I": 0.75,
+        "N": 0.3852
+      },
+      "leading": [
+        "I"
+      ],
+      "distinct": true,
+      "active": true,
+      "last_answered": "2026-09-19"
+    },
+    {
+      "number": 5,
+      "solved": 7,
+      "scores": {
+        "H": 0.2,
+        "T": 0.0,
+        "S": 0.75,
+        "I": 0.25,
+        "N": 0.5
+      },
+      "leading": [
+        "S"
+      ],
+      "distinct": false,
+      "active": true,
+      "last_answered": "2026-09-21"
+    },
+    {
+      "number": 6,
+      "solved": 17,
+      "scores": {
+        "H": 0.2,
+        "T": 0.1,
+        "S": 0.42,
+        "I": 0.4,
+        "N": 0.4182
+      },
+      "leading": [
+        "S",
+        "N"
+      ],
+      "distinct": false,
+      "active": true,
+      "last_answered": "2026-09-21"
+    },
+    {
+      "number": 7,
+      "solved": 20,
+      "scores": {
+        "H": 0.4167,
+        "T": 0.4333,
+        "S": 0.6,
+        "I": 0.0833,
+        "N": 0.0
+      },
+      "leading": [
+        "S"
+      ],
+      "distinct": true,
+      "active": true,
+      "last_answered": "2026-09-20"
+    },
+    {
+      "number": 8,
+      "solved": 20,
+      "scores": {
+        "H": 0.5833,
+        "T": 0.1667,
+        "S": 0.1667,
+        "I": 0.46,
+        "N": 0.25
+      },
+      "leading": [
+        "H"
+      ],
+      "distinct": true,
+      "active": true,
+      "last_answered": "2026-09-21"
+    },
+    {
+      "number": 9,
+      "solved": 14,
+      "scores": {
+        "H": 0.3333,
+        "T": 0.5,
+        "S": 0.4667,
+        "I": 0.075,
+        "N": 0.125
+      },
+      "leading": [
+        "T",
+        "S"
+      ],
+      "distinct": true,
+      "active": true,
+      "last_answered": "2026-09-21"
+    },
+    {
+      "number": 10,
+      "solved": 4,
+      "scores": {
+        "H": 0.0,
+        "T": 0.4,
+        "S": 0.0,
+        "I": 0.3333,
+        "N": 0.5
+      },
+      "leading": [
+        "N",
+        "T"
+      ],
+      "distinct": false,
+      "active": true,
+      "last_answered": "2026-09-20"
+    }
+  ]
+}
