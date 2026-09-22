@@ -117,8 +117,9 @@ def test_student_onboarding_full(database: sqlite3.Connection):
     assert len(set(labels(r))) == 3
     r = press(s, r, labels(r)[0]) # выбор карточки
     assert s.state == UserState.SOLVING
-    assert labels(r) == ["А", "Б", "В", "Г"]
-    r = press(s, r, "А") # ответы
+    assert len(labels(r)) == 4
+    assert all(label.startswith(letter + ".") for label, letter in zip(labels(r), "АБВГ"))
+    r = press(s, r, labels(r)[0])
     assert s.state == UserState.IDLE
 
 
@@ -159,7 +160,7 @@ def test_student_solo_and_other_grade(database: sqlite3.Connection):
     assert s.state == UserState.CHOOSING # после согласия сразу карточки заданий
     assert len(labels(r)) == 3
     r = press(s, r, labels(r)[0])       # выбрали карточку
-    r = press(s, r, "А")                # ответили
+    r = press(s, r, labels(r)[0])                # ответили
     assert s.state == UserState.IDLE
     assert "9 класс, без кода" in texts(on_start(s))
     o = User.from_max_id(database, "o")
@@ -204,7 +205,7 @@ def test_bot_never_silent(database: sqlite3.Connection):
     r = press(s, r, "Понятно, начнем")
     assert "Выбери карточку" in texts(on_text(s, "ыыы"))
     r = press(s, r, labels(r)[0])
-    r = press(s, r, "А")
+    r = press(s, r, labels(r)[0])
     assert s.state == UserState.IDLE
     assert "Не понял" in texts(on_text(s, "ыыы"))                     # шаг 31
     assert "/task" in texts(on_text(s, "/help"))                      # шаг 30
@@ -217,6 +218,82 @@ def test_teacher_unknown_and_help(database: sqlite3.Connection):
     assert "/report" in texts(on_text(t, "/help"))
     assert "Не понял" in texts(on_text(t, "привет"))
 
+# ---------------- /profile ----------------
+"""Первые 2 - вспомогательные, остальные тесты"""
+
+def _solve_n_tasks(database: sqlite3.Connection, user, n: int, first_replies=None):
+    """Решить N заданий. Нормальный прогон без обходов лимита"""
+    for i in range(n):
+        if i == 0 and first_replies is not None and user.state == UserState.CHOOSING:
+            r = first_replies
+        else:
+            r = on_text(user, "/task")
+        r = press(user, r, labels(r)[0])   # карточка
+        r = press(user, r, labels(r)[0])   # ответ
+    return r
+
+
+def _create_answered_events(database: sqlite3.Connection, user, n: int):
+    """Создать N answered-событий напрямую (обход лимита 3 в день)"""
+    from database import Event
+    from tasks import TASKS
+    for i in range(n):
+        task = TASKS[i % len(TASKS)]
+        Event.create_shown(user, [task])
+        Event.create_chosen(user, task)
+        Event.create_answered(user, task, answer=0)
+
+def test_profile_too_early(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s, _ = _joined_student(database, "s", code, 1)
+    r = on_text(s, "/profile")
+    assert "Пока рано" in texts(r)
+
+
+def test_profile_draft_after_three(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s, r = _joined_student(database, "s", code, 1)
+    _solve_n_tasks(database, s, 3, first_replies=r)
+    r = on_text(s, "/profile")
+    text = texts(r)
+    assert "Черновик профиля" in text
+    assert "набросок" in text
+    assert "чаще выбираешь" not in text
+    assert "Куда это может вести" not in text
+
+
+def test_profile_full_after_five(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s, _ = _joined_student(database, "s", code, 1)
+    _create_answered_events(database, s, 5)
+    r = on_text(s, "/profile")
+    text = texts(r)
+    assert "Твой профиль" in text
+    # есть пять строк осей
+    for axis_name in ("Люди", "Техника", "Знаки", "Образы", "Природа"):
+        assert axis_name in text
+    # либо резюме, либо направления — что-то из них есть
+    assert "чаще выбираешь" in text or "Куда это может вести" in text or "Направления покажу" in text
+
+
+def test_profile_for_teacher(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    r = on_text(t, "/profile")
+    assert "для учеников" in texts(r)
+
+
+def test_draft_shown_after_third_answer(database: sqlite3.Connection):
+    t, code = make_teacher_with_class(database)
+    s, r = _joined_student(database, "s", code, 1)
+    # первая карточка висит с онбординга — берём её
+    r = press(s, r, labels(r)[0])   # выбираем карточку
+    r = press(s, r, labels(r)[0])   # отвечаем
+    # ещё два задания
+    for _ in range(2):
+        r = on_text(s, "/task")
+        r = press(s, r, labels(r)[0])
+        r = press(s, r, labels(r)[0])
+    assert any("Черновик профиля" in rep.text for rep in r)
 
 # ---------------- /number, /free, /reset ----------------
 
@@ -227,13 +304,13 @@ def _joined_student(database: sqlite3.Connection, mid, code, number):
     on_text(s, code)
     r = on_text(s, str(number))
     r = press(s, r, "Да")
-    press(s, r, "Понятно, начнем")
-    return s
+    r = press(s, r, "Понятно, начнем")
+    return s, r
 
 
 def test_number_change_and_free(database: sqlite3.Connection):
     t, code = make_teacher_with_class(database)
-    s = _joined_student(database, "s", code, 2)
+    s, _ = _joined_student(database, "s", code, 2)
     assert "нет класса" not in texts(on_text(s, "/number"))
     assert "текущий" in texts(on_text(s, "2"))
     assert "Теперь ты номер 3" in texts(on_text(s, "3"))              # шаг 32
@@ -257,7 +334,7 @@ def test_number_for_solo_student(database: sqlite3.Connection):
 
 def test_reset_student_and_teacher(database: sqlite3.Connection):
     t, code = make_teacher_with_class(database)
-    s = _joined_student(database, "s", code, 1)
+    s, _ = _joined_student(database, "s", code, 1)
     r = on_text(s, "/reset")                                          # шаг 34
     assert labels(r) == ["Да, сбросить", "Нет"]
     assert "Оставил" in texts(press(s, r, "Нет"))

@@ -25,18 +25,29 @@ from database import (
     Class,
     Event,
     NotFoundError,
-    Event,
     NotReadyError,
     OperationNotAllowedError,
     User,
     ValidationError,
 )
+
+from scoring import (
+    profile,
+    render_profile_lines,
+    render_bar,
+    summary_key,
+    leading_axes,
+    direction_titles,
+    AXIS_NAMES,
+)
+from directions import DIRECTIONS
+from tasks import TASKS_BY_ID
+
 from model import TaskAxis, UserRole, UserState
 from report import Range, Report
 from scoring import AXIS_NAMES, leading_axes, profile
 from tasks import TASKS_BY_ID, Task
 from texts import BUTTONS, T
-from tasks import Task
 
 TEACHER_CODE_DEFAULT = "teacher"
 
@@ -104,6 +115,7 @@ def _axis_human(axis) -> str:
     return _AXIS_HUMAN[str(axis)]
 
 
+
 # ---------------------------------------------------------------------------
 # Задание дня
 # ---------------------------------------------------------------------------
@@ -154,8 +166,11 @@ def _choose_card(user: User, task_id: str) -> list[Reply]:
     )
     text = T("task.body", title=task.title, body=task.body) + "\n\n" + options_text
 
-    pairs = [(letters[i], f"ANSWER_{task.id}_{i}") for i in range(len(task.options))]
-    rows = [pairs[:2], pairs[2:]] if len(pairs) > 2 else [pairs]
+    # Кнопки: буква + текст варианта, каждая в своём ряду (столбик)
+    pairs = [
+        (f"{letters[i]}. {opt}", f"ANSWER_{task.id}_{i}") for i, opt in enumerate(task.options)
+    ]
+    rows = [[pair] for pair in pairs]
 
     return _remember(user, [Reply(text, rows)])
 
@@ -170,9 +185,11 @@ def _answer_task(user: User, task_id: str, answer: int) -> list[Reply]:
     if not (0 <= answer < len(task.options)):
         return [reply("task.expect_answer")]
 
+    solved_before = user.solved_count
     Event.create_answered(user, task, answer)
     user.state = UserState.IDLE
     user.pending_buttons = []
+    solved_after = user.solved_count
 
     axis_name = _axis_human(task.axis)
     solved = user.solved_count
@@ -186,8 +203,50 @@ def _answer_task(user: User, task_id: str, answer: int) -> list[Reply]:
     else:
         replies.append(Reply(T("task.after",
                                axis_name=axis_name, solved=solved)))
+
+    if solved_before < 3 <= solved_after:
+        replies.extend(_show_profile(user)) # под черновик
     return _remember(user, replies)
 
+def _show_profile(user: User) -> list[Reply]:
+    if user.role != UserRole.STUDENT:
+        return [reply("role.required.student")]
+
+    solved = user.solved_count
+    if solved < 3:
+        return [reply("profile.too_early", solved=solved)]
+
+    events = user.events
+    p = profile(events, TASKS_BY_ID)
+
+    lines = render_profile_lines(p)
+    body_lines = "\n".join(lines)
+
+    if solved < 5:
+        # черновик
+        text = (
+            T("profile.draft.header", solved=solved)
+            + "\n\n" + body_lines + "\n\n"
+            + T("profile.draft.footer", solved=solved, left=5 - solved)
+        )
+        return [Reply(text)]
+
+    # полный профиль
+    summary = _render_summary(p)
+    directions = _render_directions(p, user)
+
+    text = T(
+        "profile.body",
+        solved=solved,
+        bar_H=render_bar(p.scores["H"]), score_H=p.scores["H"],
+        bar_T=render_bar(p.scores["T"]), score_T=p.scores["T"],
+        bar_S=render_bar(p.scores["S"]), score_S=p.scores["S"],
+        bar_I=render_bar(p.scores["I"]), score_I=p.scores["I"],
+        bar_N=render_bar(p.scores["N"]), score_N=p.scores["N"],
+        summary=summary,
+        directions=directions,
+    )
+    return [Reply(text)]
 # ---------------------------------------------------------------------------
 # Вход
 # ---------------------------------------------------------------------------
@@ -355,8 +414,8 @@ def _command(user: User, text: str) -> list[Reply]:
         return _report(user)
     if cmd == "/report_detail":
         return _report_detail(user)
-    if cmd in ("/profile"):
-        return [reply("dev.not_ready")]  # задание дня, профиль, отчет — следующие этапы
+    if cmd == "/profile":
+        return _show_profile(user)
     return [reply("unknown.teacher" if user.role == UserRole.TEACHER else "unknown.student")]
 
 
@@ -609,6 +668,25 @@ def _number_ask(user: User) -> list[Reply]:
 # ---------------------------------------------------------------------------
 # Вспомогательное
 # ---------------------------------------------------------------------------
+
+
+def _render_summary(p) -> str:
+    key = summary_key(p)
+    lead = leading_axes(p)
+    if key == "profile.summary.one_axis":
+        return T(key, axis_1=AXIS_NAMES[lead[0]])
+    if key == "profile.summary.two_axes":
+        return T(key, axis_1=AXIS_NAMES[lead[0]], axis_2=AXIS_NAMES[lead[1]])
+    return T(key)
+
+
+def _render_directions(p, user: User) -> str:
+    lead = leading_axes(p)
+    titles = direction_titles(lead, DIRECTIONS, n=3, salt=user.id)
+    if len(titles) < 3:
+        return T("profile.directions.none")
+    return T("profile.directions",
+             direction_1=titles[0], direction_2=titles[1], direction_3=titles[2])
 
 def _prompt_for_state(user: User) -> list[Reply]:
     """Повторить вопрос, на котором остановился пользователь."""
