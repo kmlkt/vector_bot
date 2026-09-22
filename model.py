@@ -5,7 +5,7 @@ from enum import StrEnum, auto
 class UserRole(StrEnum):
     STUDENT = auto()
     TEACHER = auto()
-   
+
 
 class UserState(StrEnum):
     CHOOSE_ROLE = auto()
@@ -23,6 +23,7 @@ class UserState(StrEnum):
     ENTER_NEW_NUMBER = auto()   # /number или учитель освободил номер
     CHOOSING = auto() # ожидание выбора карточки
     SOLVING = auto() # ожидание ответа на карточку
+    REPORT_CHOOSE_CLASS = auto()
 
 class EventType(StrEnum):
     SHOWN = auto()

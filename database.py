@@ -71,6 +71,9 @@ class NotReadyError(Exception):
     pass
 
 
+USER_ACTIVE_DAYS = 12
+
+
 class User(BaseModel):
     def __init__(self, database: sqlite3.Connection, id: int):
         super().__init__(
@@ -229,6 +232,13 @@ class User(BaseModel):
         return row[0] if row else 0
 
     @property
+    def events(self) -> "list[Event]":
+        return [Event(self.database, id) for (id,) in self.database.execute(
+            "SELECT id FROM events WHERE user_id=?",
+            [self.id],
+        )]
+
+    @property
     def shown_tasks(self) -> list[Task]:
         task_ids_groups: Generator[str] = (
             x
@@ -244,7 +254,7 @@ class User(BaseModel):
     def answered_today(self) -> int:
         return fetch_value(self.database.execute(
             "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered' "
-            "AND date(created_at)=date('now')",
+            "AND date(created_at, '+03:00')=date('now', '+03:00')",
             [self.id],
         ))
 
@@ -255,6 +265,14 @@ class User(BaseModel):
     @property
     def tasks_left_today(self) -> int:
         return max(0, 3 - self.answered_today)
+
+    @property
+    def is_active(self):
+        return fetch_value(self.database.execute(
+            "SELECT COUNT(*) FROM events WHERE user_id=? AND type='answered' "
+            "AND date(created_at, '+03:00')>date('now', ?, '+03:00')",
+            [self.id, f"-{USER_ACTIVE_DAYS} days"],
+        ))
 
 
 class Class(BaseModel):
@@ -310,6 +328,16 @@ class Class(BaseModel):
         if not row:
             return None
         return User(self.database, row[0])
+
+    @property
+    def students(self):
+        return [
+            User(self.database, id) for (id,) in
+            self.database.execute(
+                "SELECT id FROM users WHERE class_id=?",
+                [self.id],
+            )
+        ]
 
 
 class Event(BaseModel):

@@ -216,7 +216,7 @@
 [{class_code_1}] [{class_code_2}] …
 
 `report.body`
-Класс {class_code} ({grade} класс, {size} учеников)
+Класс {class_code} ({grade} класс, {size})
 Привязаны: {bound_numbers}. Свободны: {free_numbers}.
 Активных за неделю: {active}. Прошли 10+ заданий: {solved_10}.
 Не начинали: {not_started_numbers}.
