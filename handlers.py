@@ -215,7 +215,7 @@ def _show_profile(user: User) -> list[Reply]:
     if solved < 3:
         return [reply("profile.too_early", solved=solved)]
 
-    events = _user_events(user)
+    events = user.events
     p = build_profile(events, TASKS_BY_ID)
 
     lines = render_profile_lines(p)
@@ -620,16 +620,6 @@ def _number_ask(user: User) -> list[Reply]:
 # ---------------------------------------------------------------------------
 # Вспомогательное
 # ---------------------------------------------------------------------------
-
-def _user_events(user: User) -> list[dict]:
-    rows = user.database.execute(
-        "SELECT type, task_id, is_correct FROM events WHERE user_id=?",
-        [user.id],
-    ).fetchall()
-    return [
-        {"type": r[0], "task_id": r[1], "is_correct": r[2]}
-        for r in rows
-    ]
 
 
 def _render_summary(p) -> str:
