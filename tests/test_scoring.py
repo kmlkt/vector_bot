@@ -20,6 +20,7 @@ from scoring import (  # noqa: E402
     leading_match,
     profile,
     render_bar,
+    render_percent,
     render_profile_lines,
     summary_key,
 )
@@ -292,9 +293,27 @@ def test_render_profile_lines_order_and_format():
     p = Profile(scores={"H": 0.8, "T": 0.4, "S": 0.7, "I": 0.3, "N": 0.2}, stats={}, solved_total=12)
     lines = render_profile_lines(p)
     assert len(lines) == 5
-    assert lines[0].startswith("Люди") and lines[0].endswith("0.8")
-    assert lines[4].startswith("Природа") and lines[4].endswith("0.2")
-    assert "████████░░" in lines[0]
+    # полоска первой: выравнивание по левому краю работает в любом шрифте
+    assert all(line[0] in "█░" for line in lines)
+    # по убыванию: сверху ведущая ось
+    assert lines[0].startswith("████████░░") and lines[0].endswith("Люди")
+    assert "80%" in lines[0]
+    assert lines[-1].endswith("Природа") and "20%" in lines[-1]
+    # без знаков после запятой, значит без точки и запятой в числах
+    assert not any("." in line or "," in line for line in lines)
+
+
+def test_render_profile_lines_unsorted_keeps_axes_order():
+    p = Profile(scores={"H": 0.2, "T": 0.4, "S": 0.7, "I": 0.3, "N": 0.9}, stats={}, solved_total=12)
+    lines = render_profile_lines(p, sort=False)
+    assert [l.split("%")[1].strip() for l in lines] == ["Люди", "Техника", "Знаки", "Образы", "Природа"]
+
+
+def test_render_percent_rounds_to_integer():
+    assert render_percent(0.4833) == 48
+    assert render_percent(0.0833) == 8
+    assert render_percent(1.0) == 100
+    assert render_percent(1.7) == 100
 
 
 # --------------------------------------------------------------------------

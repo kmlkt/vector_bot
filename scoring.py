@@ -246,12 +246,24 @@ def render_bar(score: float, width: int = 10) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
-def render_profile_lines(p: Profile) -> list[str]:
-    """Строки вида «Люди       ████████░░  0.8» в порядке осей AXES."""
-    name_width = max(len(n) for n in AXIS_NAMES.values())
+def render_percent(score: float) -> int:
+    """Оценка для показа человеку: целые проценты, без знаков после запятой."""
+    return round(max(0.0, min(1.0, score)) * 100)
+
+
+def render_profile_lines(p: Profile, sort: bool = True) -> list[str]:
+    """Строки вида «████████░░ 75% Люди».
+
+    Полоска идет первой, поэтому все строки выровнены по левому краю и
+    картинка не разъезжается в пропорциональном шрифте (в вебе MAX
+    моноширинный текст не применяется). Числа — целые проценты, чтобы не
+    было вопроса про знаки после запятой и про точку с запятой.
+    По умолчанию оси отсортированы по убыванию: получается рейтинг.
+    """
+    axes = sorted(AXES, key=lambda a: -p.scores[a]) if sort else list(AXES)
     return [
-        f"{AXIS_NAMES[a]:<{name_width}}  {render_bar(p.scores[a])}  {p.scores[a]:.1f}"
-        for a in AXES
+        f"{render_bar(p.scores[a])} {render_percent(p.scores[a]):>3}%  {AXIS_NAMES[a]}"
+        for a in axes
     ]
 
 
