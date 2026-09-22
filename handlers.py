@@ -32,7 +32,7 @@ from database import (
 )
 
 from scoring import (
-    profile as build_profile,
+    profile,
     render_profile_lines,
     render_bar,
     summary_key,
@@ -216,7 +216,7 @@ def _show_profile(user: User) -> list[Reply]:
         return [reply("profile.too_early", solved=solved)]
 
     events = user.events
-    p = build_profile(events, TASKS_BY_ID)
+    p = profile(events, TASKS_BY_ID)
 
     lines = render_profile_lines(p)
     body_lines = "\n".join(lines)
