@@ -71,7 +71,7 @@ class NotReadyError(Exception):
     pass
 
 
-USER_ACTIVE_DAYS = 12
+USER_ACTIVE_DAYS = 14
 
 
 class User(BaseModel):
