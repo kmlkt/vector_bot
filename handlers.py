@@ -34,7 +34,6 @@ from database import (
 from scoring import (
     profile,
     render_profile_lines,
-    render_bar,
     summary_key,
     leading_axes,
     direction_titles,
@@ -238,11 +237,7 @@ def _show_profile(user: User) -> list[Reply]:
     text = T(
         "profile.body",
         solved=solved,
-        bar_H=render_bar(p.scores["H"]), score_H=p.scores["H"],
-        bar_T=render_bar(p.scores["T"]), score_T=p.scores["T"],
-        bar_S=render_bar(p.scores["S"]), score_S=p.scores["S"],
-        bar_I=render_bar(p.scores["I"]), score_I=p.scores["I"],
-        bar_N=render_bar(p.scores["N"]), score_N=p.scores["N"],
+        lines=body_lines,
         summary=summary,
         directions=directions,
     )
