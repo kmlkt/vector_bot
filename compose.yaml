@@ -3,6 +3,8 @@ services:
     build: .
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
+      TEACHER_CODE: ${TEACHER_CODE}
+      TASK_SEND_TIME: ${TASK_SEND_TIME}
     volumes:
       - ./storage:/app/storage
     ports:
