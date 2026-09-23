@@ -550,6 +550,8 @@ def _free(user: User, arg: str) -> list[Reply]:
 # ---------------------------------------------------------------------------
 
 def _report(user: User) -> list[Reply]:
+    if user.role != UserRole.TEACHER:
+        return [reply("role.required.teacher")]
     classes = user.classes
     if len(classes) == 0:
         return [reply("report.no_classes")]
@@ -597,6 +599,8 @@ def _report_class(user: User, class_code: str) -> list[Reply]:
     )]
 
 def _report_detail(user: User) -> list[Reply]:
+    if user.role != UserRole.TEACHER:
+        return [reply("role.required.teacher")]
     classes = user.classes
     if len(classes) == 0:
         return [reply("report.no_classes")]
