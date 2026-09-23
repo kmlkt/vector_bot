@@ -3,3 +3,4 @@ maxapi[fastapi]==1.2.2
 python-dotenv==1.2.3
 apscheduler==3.11.3
 uvicorn==0.53.0
+aiofiles==25.1.0

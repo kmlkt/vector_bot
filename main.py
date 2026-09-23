@@ -11,6 +11,7 @@ import sqlite3
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import CommandStart
 from maxapi.types import BotStarted, ButtonsPayload, MessageCreated
@@ -22,6 +23,7 @@ import handlers
 from database import User
 from handlers import Reply
 from migration import apply_all_migrations
+from miniapp import mount_miniapp
 import scheduler
 import uvicorn
 
@@ -104,6 +106,7 @@ async def run_webhook():
     def index():
         return "Bot is working"
 
+    mount_miniapp(app)
     webhook.setup(app, path="/webhook")
     await bot.subscribe_webhook(url=WEBHOOK_URL, secret=WEBHOOK_SECRET)
 
