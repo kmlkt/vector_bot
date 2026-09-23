@@ -1,6 +1,5 @@
-// загрузка отчёта из report.json
 async function loadReport() {
-  const response = await fetch("report.json");
+  const response = await fetch(`/report?init_data=${window.WebApp?.initData}`);
   const report = await response.json();
 
   renderReport(report);
