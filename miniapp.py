@@ -67,10 +67,20 @@ def mount_miniapp(app: FastAPI, database: Connection, bot_token: str):
             profiles = [profile(x.events, TASKS_BY_ID) for x in students]
             average = average_profile(profiles)
 
+            # класс считается демонстрационным, только если все его ученики
+            # заведены seed.py: иначе пометка «модельные данные» висела бы
+            # на живом отчете и жюри решило бы, что мы показываем выдумку
+            is_mock = bool(students) and all(
+                str(x.max_user_id).startswith("seed-") for x in students
+            )
+
             result.append({
                 "generated_at": datetime.datetime.now(tz=datetime.UTC),
-                "mock": True,
-                "note": "модельные данные: история сгенерирована seed.py, это не ответы реальных детей",
+                "mock": is_mock,
+                "note": (
+                    "модельные данные: история сгенерирована seed.py, это не ответы реальных детей"
+                    if is_mock else ""
+                ),
                 "class_code": clas.code,
                 "grade": clas.grade,
                 "size": clas.size,
@@ -78,7 +88,7 @@ def mount_miniapp(app: FastAPI, database: Connection, bot_token: str):
                 "free": [i for i in range(1, (clas.size or 0) + 1) if i not in bound],
                 "active_days": USER_ACTIVE_DAYS,
                 "active": sum(1 for x in students if x.is_active),
-                "passed_10": sum(1 for x in students if x.solved_count > 10),
+                "passed_10": sum(1 for x in students if x.solved_count >= 10),  # как в текстовом отчете
                 "not_started": [x.number_in_class for x in students if x.solved_count == 0],
                 "distinct": sum(1 for x in profiles if x.is_distinct),
                 "average_profile": average,
@@ -95,7 +105,7 @@ def mount_miniapp(app: FastAPI, database: Connection, bot_token: str):
                         "solved": x.solved_count,
                         "scores": y.scores,
                         "leading": leading_axes(y),
-                        "distinct": y.distinct,
+                        "distinct": y.is_distinct,  # страница ждет да/нет, а не число
                         "active": x.is_active,
                         "last_answered": x.last_answered,
                     } for x, y in zip(students, profiles)

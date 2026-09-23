@@ -201,7 +201,8 @@ function renderStudents(report) {
 function renderNote(report) {
   const note = document.querySelector("#note");
 
-  note.textContent = report.note;
+  note.textContent = report.note || "";
+  note.hidden = !report.note;
 }
 
 loadReport();
