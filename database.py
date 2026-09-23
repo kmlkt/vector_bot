@@ -274,6 +274,18 @@ class User(BaseModel):
             [self.id, f"-{USER_ACTIVE_DAYS} days"],
         ))
 
+    @property
+    def last_answered(self) -> datetime.datetime:
+        return datetime.datetime.fromisoformat(
+            fetch_value(
+                self.database.execute(
+                    "SELECT MAX(created_at) FROM events WHERE user_id=? AND type='answered'",
+                    [self.id],
+                )
+            )
+            + "+00:00"
+        )
+
 
 class Class(BaseModel):
     def __init__(self, database: sqlite3.Connection, id: int) -> None:

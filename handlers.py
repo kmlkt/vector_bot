@@ -33,6 +33,7 @@ from database import (
 
 from scoring import (
     profile,
+    render_percent,
     render_profile_lines,
     summary_key,
     leading_axes,
@@ -550,6 +551,8 @@ def _free(user: User, arg: str) -> list[Reply]:
 # ---------------------------------------------------------------------------
 
 def _report(user: User) -> list[Reply]:
+    if user.role != UserRole.TEACHER:
+        return [reply("role.required.teacher")]
     classes = user.classes
     if len(classes) == 0:
         return [reply("report.no_classes")]
@@ -588,15 +591,17 @@ def _report_class(user: User, class_code: str) -> list[Reply]:
         active=uchenik_declension(report.active),
         solved_10=uchenik_declension(report.solved10),
         not_started_numbers=ranges_join(report.not_started),
-        avg_H=report.profile[TaskAxis.H],
-        avg_T=report.profile[TaskAxis.T],
-        avg_S=report.profile[TaskAxis.S],
-        avg_I=report.profile[TaskAxis.I],
-        avg_N=report.profile[TaskAxis.N],
+        avg_H=render_percent(report.profile[TaskAxis.H]),
+        avg_T=render_percent(report.profile[TaskAxis.T]),
+        avg_S=render_percent(report.profile[TaskAxis.S]),
+        avg_I=render_percent(report.profile[TaskAxis.I]),
+        avg_N=render_percent(report.profile[TaskAxis.N]),
         distinct_count=uchenik_declension(report.distinct_profiles),
     )]
 
 def _report_detail(user: User) -> list[Reply]:
+    if user.role != UserRole.TEACHER:
+        return [reply("role.required.teacher")]
     classes = user.classes
     if len(classes) == 0:
         return [reply("report.no_classes")]

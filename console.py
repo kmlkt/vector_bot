@@ -42,7 +42,7 @@ def _print(replies) -> list[str]:
 
 def main() -> None:
     keep = "--keep" in sys.argv
-    database = _open_db(True)
+    database = _open_db(keep)
     from migration import apply_all_migrations
     apply_all_migrations(database)
 
