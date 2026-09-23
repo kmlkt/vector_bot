@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import CommandStart
-from maxapi.types import BotStarted, ButtonsPayload, MessageCreated
+from maxapi.types import BotCommand, BotStarted, ButtonsPayload, MessageCreated
 from maxapi.types.attachments import CallbackButton
 from maxapi.types.updates.message_callback import MessageCallback
 from maxapi.webhook.fastapi import FastAPIMaxWebhook
@@ -46,6 +46,14 @@ apply_all_migrations(database)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+BOT_SUGGESTED_COMMANDS = {
+    "/start": "задания и профиль",
+    "/task": "задание сейчас",
+    "/profile": "мой профиль",
+    "/help": "что умеет бот",
+    "/number": "сменить свой номер в классе",
+    "/reset": "начать заново",
+}
 
 def _attachments(reply: Reply) -> list:
     if not reply.buttons:
@@ -117,6 +125,8 @@ async def run_webhook():
 
 async def main():
     scheduler.run_scheduler(database, lambda x: _send(x, handlers.show_task(x)), TASK_SEND_TIME)
+
+    await bot.set_commands(*[BotCommand(name=cmd, description=desc) for cmd, desc in BOT_SUGGESTED_COMMANDS.items()])
     if RUN_MODE == "WEBHOOK":
         await run_webhook()
     else:
