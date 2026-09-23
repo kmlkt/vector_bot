@@ -216,7 +216,7 @@
 Привязаны: {bound_numbers}. Свободны: {free_numbers}.
 Активных за неделю: {active}. Прошли 10+ заданий: {solved_10}.
 Не начинали: {not_started_numbers}.
-Средний профиль класса: Люди {avg_H} · Техника {avg_T} · Знаки {avg_S} · Образы {avg_I} · Природа {avg_N}
+Средний профиль класса: Люди {avg_H}% · Техника {avg_T}% · Знаки {avg_S}% · Образы {avg_I}% · Природа {avg_N}%
 С выраженным профилем: {distinct_count}. Подробно — /report_detail.
 
 `report.detail`
