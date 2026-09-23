@@ -1,35 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Отчёт класса</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://st.max.ru/js/max-web-app.js"></script>
-    <script src="main.js"></script>
-</head>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Отчёт класса</title>
+        <link rel="stylesheet" href="style.css" />
+        <script src="https://st.max.ru/js/max-web-app.js"></script>
+        <script src="main.js"></script>
+    </head>
 
-<body>
-    <main class="app">
-        <header class="header">
-            <div class="header-label">ОТЧЁТ КЛАССА</div>
-            <h1 id="class-title">8 класс</h1>
-            <div id="class-code" class="class-code">Код: —</div>
-        </header>
-        <section class="stats" id="stats">
-        </section>
-        <section class="section">
-            <h2>Средний профиль</h2>
-            <div id="profile" class="profile">
-            </div>
-        </section>
-        <section class="section">
-            <h2>Ученики</h2>
-            <div id="students" class="students">
-            </div>
-        </section>
-        <footer id="note" class="note">
-        </footer>
-    </main>
-</body>
+    <body>
+        <div class="app" id="error" hidden>
+            <header class="header">
+                <h1 id="error-title">Ошибка</h1>
+                <div id="error-text" class="class-code">
+                </div>
+            </header>
+        </div>
+        <main class="app" id="app">
+            <header class="header">
+                <div class="header-label">ОТЧЁТ КЛАССА</div>
+                <h1 id="class-title">8 класс</h1>
+                <div id="class-code" class="class-code">
+                    Код:
+                    <select id="class-code-select"></select>
+                </div>
+            </header>
+            <section class="stats" id="stats"></section>
+            <section class="section">
+                <h2>Средний профиль</h2>
+                <div id="profile" class="profile"></div>
+            </section>
+            <section class="section">
+                <h2>Ученики</h2>
+                <div id="students" class="students"></div>
+            </section>
+            <footer id="note" class="note"></footer>
+        </main>
+    </body>
 </html>

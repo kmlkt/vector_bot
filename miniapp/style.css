@@ -56,6 +56,21 @@ body {
     color: #777;
 }
 
+select {
+    border: 0;
+    background: white;
+    border-radius: 16px;
+    padding: 16px 50px 16px 16px;
+    font-weight: 700;
+    background-image: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/></svg>');
+    background-size: 12px;
+    background-position: right 15px center;
+    background-repeat: no-repeat;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
 /* --------------------
    Статистика
    -------------------- */

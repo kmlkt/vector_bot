@@ -106,7 +106,7 @@ async def run_webhook():
     def index():
         return "Bot is working"
 
-    mount_miniapp(app)
+    mount_miniapp(app, database, BOT_TOKEN)
     webhook.setup(app, path="/webhook")
     await bot.subscribe_webhook(url=WEBHOOK_URL, secret=WEBHOOK_SECRET)
 

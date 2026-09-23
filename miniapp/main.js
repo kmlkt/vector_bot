@@ -1,8 +1,60 @@
 async function loadReport() {
-  const response = await fetch(`/report?init_data=${window.WebApp?.initData}`);
-  const report = await response.json();
+  const response = await fetch(`/report?${window.WebApp?.initData}`);
+  if (!response.ok) {
+    if (response.status == 401) {
+      showError(
+        "Сначала откройте чат с ботом",
+        "Напишите боту /start и выберите, кто вы. Если вы учитель, после этого создайте класс командой /class и вернитесь сюда",
+      );
+    } else if (response.status == 401) {
+      showError(
+        "Здесь отчет для учителя",
+        "Ты вошел как ученик. Свой профиль смотри в чате с ботом, команда /profile",
+      );
+    } else {
+      showError(
+        "Что-то пошло не так с моей стороны",
+        "Попробуйте еще раз через минуту. Если повторится — /help.",
+      );
+    }
+    return;
+  }
+  const reports = await response.json();
+  if (reports.length == 0) {
+    showError(
+      "У вас пока нет классов",
+      "Создайте класс в чате командой /class, потом обновите страницу",
+    );
+    return;
+  }
+  renderSelector(
+    reports[0],
+    reports.map((x) => x.class_code),
+    (class_code) => {
+      renderReport(reports.find((x) => x.class_code == class_code));
+    },
+  );
+  renderReport(reports[0]);
+}
 
-  renderReport(report);
+function showError(title, text) {
+  document.querySelector("#app").setAttribute("hidden", "");
+  document.querySelector("#error").removeAttribute("hidden");
+  document.querySelector("#error-title").textContent = title;
+  document.querySelector("#error-text").textContent = text;
+}
+
+function renderSelector(report, class_codes, change) {
+  const select = document.querySelector("#class-code-select");
+  select.innerHTML = class_codes
+    .map(
+      (x) =>
+        `<option value="${x}" ${report.class_code == x ? "selected" : ""}>${x}</option>`,
+    )
+    .join("");
+  select.addEventListener("change", (e) => {
+    change(e.target.value);
+  });
 }
 
 // вызов функций для обработки отчёта и отрисовке его в html
@@ -17,9 +69,6 @@ function renderReport(report) {
 // отображение класса и кода класса
 function renderHeader(report) {
   document.querySelector("#class-title").textContent = `${report.grade} класс`;
-
-  document.querySelector("#class-code").textContent =
-    `Код: ${report.class_code}`;
 }
 
 // обработка и отображение статистики
