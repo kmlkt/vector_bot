@@ -123,7 +123,10 @@ def build_app(lifespan=None) -> FastAPI:
 
 
 async def serve(app: FastAPI) -> None:
-    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080)
+    # access_log выключен осознанно: MAX передает данные запустившего мини-приложение
+    # в строке запроса (в том числе подпись), а uvicorn пишет строку запроса целиком.
+    # В логах сервера не должно оседать ничего, чего нет в базе.
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080, access_log=False)
     await uvicorn.Server(config).serve()
 
 
