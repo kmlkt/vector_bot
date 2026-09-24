@@ -35,6 +35,76 @@ def _validate_params(params_dict: QueryParams, bot_token: str) -> bool:
     return hmac.compare_digest(hash, original_hash)
 
 
+def _is_seed_class(students) -> bool:
+    """Класс демонстрационный, только если все его ученики заведены seed.py."""
+    return bool(students) and all(
+        str(x.max_user_id).startswith("seed-") for x in students
+    )
+
+
+def class_report(clas) -> dict:
+    students = clas.students
+    bound = [x.number_in_class for x in students]
+    profiles = [profile(x.events, TASKS_BY_ID) for x in students]
+    average = average_profile(profiles)
+
+    # класс считается демонстрационным, только если все его ученики
+    # заведены seed.py: иначе пометка «модельные данные» висела бы
+    # на живом отчете и жюри решило бы, что мы показываем выдумку
+    is_mock = _is_seed_class(students)
+
+    return {
+        "generated_at": datetime.datetime.now(tz=datetime.UTC),
+        "mock": is_mock,
+        "note": (
+            "модельные данные: история сгенерирована seed.py, это не ответы реальных детей"
+            if is_mock else ""
+        ),
+        "class_code": clas.code,
+        "grade": clas.grade,
+        "size": clas.size,
+        "bound": bound,
+        "free": [i for i in range(1, (clas.size or 0) + 1) if i not in bound],
+        "active_days": USER_ACTIVE_DAYS,
+        "active": sum(1 for x in students if x.is_active),
+        "passed_10": sum(1 for x in students if x.solved_count >= 10),  # как в текстовом отчете
+        "not_started": [x.number_in_class for x in students if x.solved_count == 0],
+        "distinct": sum(1 for x in profiles if x.is_distinct),
+        "average_profile": average,
+        "axis_names": {
+            "H": "Люди",
+            "T": "Техника",
+            "S": "Знаки",
+            "I": "Образы",
+            "N": "Природа",
+        },
+        "students": [
+            {
+                "number": x.number_in_class,
+                "solved": x.solved_count,
+                "scores": y.scores,
+                "leading": leading_axes(y),
+                "distinct": y.is_distinct,  # страница ждет да/нет, а не число
+                "active": x.is_active,
+                "last_answered": x.last_answered,
+            } for x, y in zip(students, profiles)
+        ],
+    }
+
+
+def demo_reports(database: Connection) -> list[dict]:
+    """Отчеты только по демонстрационным классам из seed.py.
+
+    Нужны, чтобы проверяющий открыл страницу отчета в браузере без MAX.
+    Живой класс сюда не попадет: отбор идет по признаку, что все ученики
+    класса заведены seed.py.
+    """
+    return [
+        class_report(clas) for clas in Class.all(database)
+        if _is_seed_class(clas.students)
+    ]
+
+
 def mount_miniapp(app: FastAPI, database: Connection, bot_token: str):
     app.mount("/miniapp", StaticFiles(directory="miniapp"))
 
@@ -59,56 +129,8 @@ def mount_miniapp(app: FastAPI, database: Connection, bot_token: str):
     @app.get("/report")
     async def report(request: Request):
         user = validate_require_teacher(request)
+        return [class_report(clas) for clas in user.classes]
 
-        result = []
-        for clas in user.classes:
-            students = clas.students
-            bound = [x.number_in_class for x in students]
-            profiles = [profile(x.events, TASKS_BY_ID) for x in students]
-            average = average_profile(profiles)
-
-            # класс считается демонстрационным, только если все его ученики
-            # заведены seed.py: иначе пометка «модельные данные» висела бы
-            # на живом отчете и жюри решило бы, что мы показываем выдумку
-            is_mock = bool(students) and all(
-                str(x.max_user_id).startswith("seed-") for x in students
-            )
-
-            result.append({
-                "generated_at": datetime.datetime.now(tz=datetime.UTC),
-                "mock": is_mock,
-                "note": (
-                    "модельные данные: история сгенерирована seed.py, это не ответы реальных детей"
-                    if is_mock else ""
-                ),
-                "class_code": clas.code,
-                "grade": clas.grade,
-                "size": clas.size,
-                "bound": bound,
-                "free": [i for i in range(1, (clas.size or 0) + 1) if i not in bound],
-                "active_days": USER_ACTIVE_DAYS,
-                "active": sum(1 for x in students if x.is_active),
-                "passed_10": sum(1 for x in students if x.solved_count >= 10),  # как в текстовом отчете
-                "not_started": [x.number_in_class for x in students if x.solved_count == 0],
-                "distinct": sum(1 for x in profiles if x.is_distinct),
-                "average_profile": average,
-                "axis_names": {
-                    "H": "Люди",
-                    "T": "Техника",
-                    "S": "Знаки",
-                    "I": "Образы",
-                    "N": "Природа",
-                },
-                "students": [
-                    {
-                        "number": x.number_in_class,
-                        "solved": x.solved_count,
-                        "scores": y.scores,
-                        "leading": leading_axes(y),
-                        "distinct": y.is_distinct,  # страница ждет да/нет, а не число
-                        "active": x.is_active,
-                        "last_answered": x.last_answered,
-                    } for x, y in zip(students, profiles)
-                ],
-            })
-        return result
+    @app.get("/report/demo")
+    async def report_demo():
+        return demo_reports(database)

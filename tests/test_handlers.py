@@ -285,10 +285,10 @@ def test_profile_for_teacher(database: sqlite3.Connection):
 def test_draft_shown_after_third_answer(database: sqlite3.Connection):
     t, code = make_teacher_with_class(database)
     s, r = _joined_student(database, "s", code, 1)
-    # первая карточка висит с онбординга — берём её
+    # первая карточка висит с онбординга — берем ее
     r = press(s, r, labels(r)[0])   # выбираем карточку
     r = press(s, r, labels(r)[0])   # отвечаем
-    # ещё два задания
+    # еще два задания
     for _ in range(2):
         r = on_text(s, "/task")
         r = press(s, r, labels(r)[0])

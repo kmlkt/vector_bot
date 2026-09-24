@@ -166,7 +166,7 @@ def _choose_card(user: User, task_id: str) -> list[Reply]:
     )
     text = T("task.body", title=task.title, body=task.body) + "\n\n" + options_text
 
-    # Кнопки: буква + текст варианта, каждая в своём ряду (столбик)
+    # Кнопки: буква + текст варианта, каждая в своем ряду (столбик)
     pairs = [
         (f"{letters[i]}. {opt}", f"ANSWER_{task.id}_{i}") for i, opt in enumerate(task.options)
     ]
