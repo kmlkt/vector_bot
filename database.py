@@ -275,16 +275,21 @@ class User(BaseModel):
         ))
 
     @property
-    def last_answered(self) -> datetime.datetime:
-        return datetime.datetime.fromisoformat(
-            fetch_value(
-                self.database.execute(
-                    "SELECT MAX(created_at) FROM events WHERE user_id=? AND type='answered'",
-                    [self.id],
-                )
+    def last_answered(self) -> "datetime.datetime | None":
+        """Когда ученик отвечал последний раз. None, если еще ни разу.
+
+        Привязался по коду и не решал — обычное состояние первого дня пилота,
+        поэтому отсутствие ответов не ошибка и падать здесь нельзя.
+        """
+        value = fetch_value(
+            self.database.execute(
+                "SELECT MAX(created_at) FROM events WHERE user_id=? AND type='answered'",
+                [self.id],
             )
-            + "+00:00"
         )
+        if value is None:
+            return None
+        return datetime.datetime.fromisoformat(value + "+00:00")
 
 
 class Class(BaseModel):
@@ -302,6 +307,15 @@ class Class(BaseModel):
                 )
             ),
         )
+
+    @staticmethod
+    def all(database: sqlite3.Connection) -> "list[Class]":
+        return [
+            Class(database, id) for (id,) in
+            database.execute(
+                "SELECT id FROM classes WHERE grade IS NOT NULL AND size IS NOT NULL"
+            )
+        ]
 
     @staticmethod
     def create(user: User) -> "Class":

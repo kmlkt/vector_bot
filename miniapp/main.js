@@ -1,5 +1,12 @@
+// Страницу открывают двумя способами: из MAX кнопкой (тогда платформа кладет
+// подпись в initData) и просто в браузере — так проверяющий смотрит отчет по
+// README, без мессенджера. Во втором случае идем в демо-режим: он отдает только
+// сгенерированные seed.py классы, живые данные туда не попадают.
+const initData = window.WebApp?.initData;
+const isDemo = !initData;
+
 async function loadReport() {
-  const response = await fetch(`/report?${window.WebApp?.initData}`);
+  const response = await fetch(isDemo ? "/report/demo" : `/report?${initData}`);
   if (!response.ok) {
     if (response.status == 401) {
       showError(
@@ -21,10 +28,17 @@ async function loadReport() {
   }
   const reports = await response.json();
   if (reports.length == 0) {
-    showError(
-      "У вас пока нет классов",
-      "Создайте класс в чате командой /class, потом обновите страницу",
-    );
+    if (isDemo) {
+      showError(
+        "Демонстрационных данных пока нет",
+        "Откройте чат с ботом и отправьте /demo_teacher — появится класс с историей, потом обновите страницу",
+      );
+    } else {
+      showError(
+        "У вас пока нет классов",
+        "Создайте класс в чате командой /class, потом обновите страницу",
+      );
+    }
     return;
   }
   renderSelector(
@@ -200,9 +214,11 @@ function renderStudents(report) {
 // отображение примечание
 function renderNote(report) {
   const note = document.querySelector("#note");
+  const demoNote = "демонстрационный просмотр без MAX: показаны только сгенерированные классы";
 
-  note.textContent = report.note || "";
-  note.hidden = !report.note;
+  const text = [report.note, isDemo ? demoNote : ""].filter(Boolean).join(". ");
+  note.textContent = text;
+  note.hidden = !text;
 }
 
 loadReport();

@@ -11,7 +11,6 @@ import sqlite3
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from maxapi import Bot, Dispatcher, F
 from maxapi.filters.command import CommandStart
 from maxapi.types import BotCommand, BotStarted, ButtonsPayload, MessageCreated
@@ -106,21 +105,41 @@ async def text(event: MessageCreated):
     user = User.from_max_id(database, str(event.message.sender.user_id))
     await _answer(event, _safe(handlers.on_text, user, event.message.body.text))
 
-async def run_webhook():
-    webhook = FastAPIMaxWebhook(dp=dp, bot=bot, secret=WEBHOOK_SECRET)
-    app = FastAPI(lifespan=webhook.lifespan)
+def build_app(lifespan=None) -> FastAPI:
+    """HTTP-часть: страница отчета учителя и служебный ответ на корне.
+
+    Поднимается в обоих режимах. В POLLING она нужна затем, что мини-приложение
+    и есть отдельный экран продукта: без нее `docker compose up` дает бота без
+    отчета, а порт 8080 в compose никто не слушает.
+    """
+    app = FastAPI(lifespan=lifespan) if lifespan else FastAPI()
 
     @app.get("/")
     def index():
         return "Bot is working"
 
     mount_miniapp(app, database, BOT_TOKEN)
+    return app
+
+
+async def serve(app: FastAPI) -> None:
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080)
+    await uvicorn.Server(config).serve()
+
+
+async def run_webhook():
+    webhook = FastAPIMaxWebhook(dp=dp, bot=bot, secret=WEBHOOK_SECRET)
+    app = build_app(lifespan=webhook.lifespan)
     webhook.setup(app, path="/webhook")
     await bot.subscribe_webhook(url=WEBHOOK_URL, secret=WEBHOOK_SECRET)
+    await serve(app)
 
-    config = uvicorn.Config(app=app, host="0.0.0.0", port=8080)
-    server = uvicorn.Server(config)
-    await server.serve()
+
+async def run_polling():
+    # https и домен не нужны: MAX опрашивается сами, страница отчета работает
+    # на localhost:8080. Это режим по умолчанию и режим для проверки по README.
+    await bot.delete_webhook()
+    await asyncio.gather(serve(build_app()), dp.start_polling(bot))
 
 
 async def main():
@@ -130,8 +149,7 @@ async def main():
     if RUN_MODE == "WEBHOOK":
         await run_webhook()
     else:
-        await bot.delete_webhook()
-        await dp.start_polling(bot)
+        await run_polling()
 
 
 if __name__ == "__main__":
