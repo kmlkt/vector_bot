@@ -71,7 +71,7 @@ function renderSelector(report, class_codes, change) {
   });
 }
 
-// вызов функций для обработки отчёта и отрисовке его в html
+// вызов функций для обработки отчета и отрисовке его в html
 function renderReport(report) {
   renderHeader(report);
   renderStats(report);
