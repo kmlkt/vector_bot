@@ -114,6 +114,7 @@ def seeded_class(teacher: User, size: int = 27, with_history: int = 20,
     names = list(ARCHETYPES)
     for n in range(1, with_history + 1):
         s = User.from_max_id(teacher.database, f"seed-{cls.code}-{n}")
+        s.is_demo = 1
         s.role = UserRole.STUDENT
         s.clas = cls
         s.number_in_class = n
@@ -130,6 +131,7 @@ def attach_demo_student(user: User, archetype: str = "люди+знаки") -> i
     user.role = UserRole.STUDENT
     user.grade = 8
     user.state = UserState.IDLE
+    user.is_demo = 1
     return generate_history(user, archetype)
 
 
@@ -137,6 +139,7 @@ def attach_demo_teacher(user: User) -> Class:
     """Незарегистрированный аккаунт становится учителем с готовым классом."""
     user.role = UserRole.TEACHER
     user.state = UserState.IDLE
+    user.is_demo = 1
     return seeded_class(user)
 
 

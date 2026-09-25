@@ -97,6 +97,19 @@ class User(BaseModel):
             return User._create_new(database, max_user_id)
 
     @staticmethod
+    def real_students(database: sqlite3.Connection) -> "list[User]":
+        """Ученики пилота: без демонстрационных аккаунтов.
+
+        Демо-аккаунт заводится командой /demo и получает сгенерированную
+        историю, поэтому в метриках пилота ему не место.
+        """
+        return [
+            User(database, id) for (id,) in database.execute(
+                "SELECT id FROM users WHERE role='student' AND is_demo=0 ORDER BY id"
+            )
+        ]
+
+    @staticmethod
     def all_idle_students(database: sqlite3.Connection) -> "list[User]":
         return [
             User(database, id)
@@ -122,6 +135,7 @@ class User(BaseModel):
     grade: int | None
     class_id: int | None
     number_in_class: int | None
+    is_demo: int  # 1 у аккаунтов, созданных /demo, /demo_teacher и seed.py
 
     @property
     def clas(self) -> "Class":
