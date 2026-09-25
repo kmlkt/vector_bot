@@ -3,6 +3,10 @@ from pathlib import Path
 
 
 def apply_all_migrations(database: sqlite3.Connection):
+    # SQLite проверяет внешние ключи только когда это явно включено, причем
+    # на каждом соединении отдельно. Без этого REFERENCES в схеме — украшение:
+    # событие на несуществующего ученика записывалось молча.
+    database.execute("PRAGMA foreign_keys = ON")
     database.executescript(
         "CREATE TABLE IF NOT EXISTS migrations (key TEXT PRIMARY KEY);"
     )
