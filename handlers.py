@@ -111,6 +111,16 @@ _AXIS_HUMAN = {
 }
 
 
+def zadanie_declension(count: int) -> str:
+    word = "заданий"
+    if not (11 <= (count % 100) <= 19):
+        if count % 10 == 1:
+            word = "задание"
+        if 2 <= (count % 10) <= 4:
+            word = "задания"
+    return f"{count} {word}"
+
+
 def _axis_human(axis) -> str:
     return _AXIS_HUMAN[str(axis)]
 
@@ -227,7 +237,7 @@ def _show_profile(user: User) -> list[Reply]:
         text = (
             T("profile.draft.header", solved=solved)
             + "\n\n" + body_lines + "\n\n"
-            + T("profile.draft.footer", solved=solved, left=5 - solved)
+            + T("profile.draft.footer", left=zadanie_declension(5 - solved))
         )
         return [Reply(text)]
 
@@ -610,16 +620,6 @@ def _report_detail(user: User) -> list[Reply]:
         [[(x.code, x.code)] for x in classes])])
 
 def _report_detail_class(user: User, class_code: str) -> list[Reply]:
-    def zadanie_declension(count: int):
-        word = "заданий"
-        if not (11 <= (count % 100) <= 19):
-            if count % 10 == 1:
-                word = "задание"
-            if 2 <= (count % 10) <= 4:
-                word = "задания"
-
-        return f"{count} {word}"
-
     clas = Class.from_code(user.database, class_code)
     students = clas.students
 
