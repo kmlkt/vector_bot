@@ -1,0 +1,128 @@
+{
+  "taken_at": "2026-09-27T20:53:36",
+  "db": "/private/tmp/claude-501/-Users-cherny-shevv/c32147b4-729e-4aef-b6f7-0187da7acade/scratchpad/pilot/snap1.db",
+  "students": [
+    {
+      "id": 42,
+      "grade": 9,
+      "class_code": "9R76",
+      "number_in_class": 7,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-27",
+      "last_day": "2026-09-27",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 1.0,
+        "I": 0.5,
+        "N": 0.5
+      },
+      "leading": [
+        "S"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.75
+    },
+    {
+      "id": 43,
+      "grade": null,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 0,
+      "days_answered": 0,
+      "first_day": null,
+      "last_day": null,
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.0
+    },
+    {
+      "id": 44,
+      "grade": 8,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 1,
+      "days_answered": 1,
+      "first_day": "2026-09-26",
+      "last_day": "2026-09-26",
+      "scores": {
+        "H": 0.0,
+        "T": 0.6,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.6
+    },
+    {
+      "id": 45,
+      "grade": null,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-27",
+      "last_day": "2026-09-27",
+      "scores": {
+        "H": 0.5,
+        "T": 0.0,
+        "S": 1.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "S"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.875
+    },
+    {
+      "id": 46,
+      "grade": 9,
+      "class_code": "9R76",
+      "number_in_class": 9,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-27",
+      "last_day": "2026-09-27",
+      "scores": {
+        "H": 0.5,
+        "T": 1.0,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.875
+    }
+  ],
+  "summary": {
+    "дошли до бота": 5,
+    "сделали хотя бы одно задание": 4,
+    "вернулись на второй день": 0,
+    "среднее заданий на начавшего": 2.5,
+    "профиль показывается (5+)": 0,
+    "10+ заданий": 0,
+    "выраженный профиль среди 10+": 0
+  }
+}
