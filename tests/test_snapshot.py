@@ -5,11 +5,24 @@ import sqlite3
 import seed
 import snapshot
 from database import User
+from model import UserRole
 
 
-def test_take_on_seeded_database(database: sqlite3.Connection, tmp_path):
-    t = User.from_max_id(database, "demo_t")
-    seed.attach_demo_teacher(t)
+def test_demo_accounts_are_out_of_the_snapshot(database: sqlite3.Connection, tmp_path):
+    """Жюри нажимает /demo на проде — и не попадает в цифры пилота.
+
+    Демо-аккаунт получает сгенерированную историю за 12 дней. Если такие
+    аккаунты считать вместе с живыми, метрики пилота испортят проверяющие.
+    """
+    demo_teacher = User.from_max_id(database, "seed-teacher")
+    seed.attach_demo_teacher(demo_teacher)
+
+    demo_student = User.from_max_id(database, "777")   # настоящий id из MAX, /demo
+    seed.attach_demo_student(demo_student)
+
+    live = User.from_max_id(database, "888")
+    live.role = UserRole.STUDENT
+    live.grade = 9
     database.commit()
 
     db_file = tmp_path / "database.db"
@@ -18,12 +31,10 @@ def test_take_on_seeded_database(database: sqlite3.Connection, tmp_path):
     backup.close()
 
     snap = snapshot.take(str(db_file))
-    assert snap["summary"]["дошли до бота"] == 20
-    assert snap["summary"]["сделали хотя бы одно задание"] == 20
-    assert snap["summary"]["10+ заданий"] >= 10
-    first = snap["students"][0]
-    assert set(first["scores"]) == {"H", "T", "S", "I", "N"}
-    assert "max_user_id" not in first          # id из MAX в снимок не попадает
+
+    assert snap["summary"]["дошли до бота"] == 1, "в снимок попали демонстрационные аккаунты"
+    assert snap["students"][0]["grade"] == 9
+    assert "max_user_id" not in snap["students"][0]   # id из MAX в снимок не попадает
 
 
 def test_summary_counts():
@@ -62,3 +73,40 @@ def test_compare_leading_axis():
     assert c["ведущая ось не изменилась"] == 1
     assert c["доля устойчивых, %"] == 50
     assert c["заданий добавилось в среднем"] == 6.0
+
+
+def test_migration_marks_old_demo_accounts(database: sqlite3.Connection):
+    """Вторая часть миграции 5: демо-аккаунты, заведенные до нее.
+
+    У них настоящий id из MAX, отличить их можно только по истории задним
+    числом: живых участников до 25.09.2026 не было, пилот стартует в этот день.
+    """
+    demo_teacher = User.from_max_id(database, "seed-teacher")
+    seed.attach_demo_teacher(demo_teacher)
+    demo_student = User.from_max_id(database, "777")
+    seed.attach_demo_student(demo_student)
+
+    live = User.from_max_id(database, "888")
+    live.role = UserRole.STUDENT
+    live.grade = 9
+    database.execute(
+        "INSERT INTO events (user_id, type, task_id, created_at) VALUES (?, 'answered', 'H1', ?)",
+        [live.id, "2026-09-26 16:10:00"],
+    )
+
+    # откатываем пометку, как будто миграция еще не отработала
+    database.execute("UPDATE users SET is_demo = 0")
+    database.commit()
+
+    updates = [
+        stmt for stmt in open("migrations/5_demo_flag.sql", encoding="utf-8").read().split(";")
+        if "UPDATE" in stmt
+    ]
+    for stmt in updates:
+        database.execute(stmt)
+    database.commit()
+
+    assert demo_student.is_demo == 1, "демо-ученик с историей задним числом не помечен"
+    assert live.is_demo == 0, "живого ученика пометили как демонстрационного"
+    seeded = User.from_max_id(database, f"seed-{demo_teacher.classes[0].code}-1")
+    assert seeded.is_demo == 1

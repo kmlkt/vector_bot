@@ -409,3 +409,53 @@ def test_direction_titles():
     titles = direction_titles(["N"], _directions())
     assert len(titles) == 3
     assert all(isinstance(t, str) and t for t in titles)
+
+
+def _tasks_by_axis():
+    from tasks import TASKS
+    out = {}
+    for t in TASKS:
+        out.setdefault(t.axis, []).append(t)
+    return out
+
+
+# ---------------- Ось без проверяемых заданий ----------------
+
+def test_unchecked_axis_gets_average_multiplier():
+    """«Люди» не должны обгонять другие оси только потому, что их не проверяют.
+
+    В банке нет ни одного задания с правильным ответом по оси H. Если считать
+    неизвестную успешность как идеальную, ось получает максимум там, где
+    остальные штрафуются за ошибки, и у ровного ученика появляется ложный
+    уклон в «Людей».
+    """
+    events = []
+    # по каждой оси показываем и выбираем поровну; по проверяемым отвечаем на половину верно
+    for axis, tasks in _tasks_by_axis().items():
+        for i, task in enumerate(tasks[:4]):
+            events.append({"type": "shown", "task_id": task.id})
+            events.append({"type": "chosen", "task_id": task.id})
+            is_correct = None if task.correct is None else (i % 2 == 0)
+            events.append({"type": "answered", "task_id": task.id, "is_correct": is_correct})
+
+    from tasks import TASKS_BY_ID
+    p = profile(events, TASKS_BY_ID)
+
+    assert p.stats["H"].success is None, "ось H перестала быть непроверяемой, тест надо переписать"
+    # H не выше проверяемых осей, у которых половина ответов верная
+    assert p.scores["H"] == pytest.approx(p.scores["T"], abs=0.01)
+    assert p.scores["H"] == pytest.approx(p.scores["S"], abs=0.01)
+
+
+def test_unchecked_axis_alone_is_not_punished():
+    """Если проверяемых ответов нет вообще, замещать нечем — множитель прежний."""
+    tasks = _tasks_by_axis()["H"]
+    events = []
+    for task in tasks[:3]:
+        events.append({"type": "shown", "task_id": task.id})
+        events.append({"type": "chosen", "task_id": task.id})
+        events.append({"type": "answered", "task_id": task.id, "is_correct": None})
+
+    from tasks import TASKS_BY_ID
+    p = profile(events, TASKS_BY_ID)
+    assert p.scores["H"] == pytest.approx(1.0)

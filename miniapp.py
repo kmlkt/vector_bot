@@ -36,10 +36,13 @@ def _validate_params(params_dict: QueryParams, bot_token: str) -> bool:
 
 
 def _is_seed_class(students) -> bool:
-    """Класс демонстрационный, только если все его ученики заведены seed.py."""
-    return bool(students) and all(
-        str(x.max_user_id).startswith("seed-") for x in students
-    )
+    """Класс демонстрационный, только если все его ученики помечены как демо.
+
+    Раньше признаком был префикс идентификатора, но команда /demo_teacher
+    заводит учителя с настоящим id из MAX, поэтому опора на префикс была
+    ненадежной. Теперь признак хранится в базе (миграция 5).
+    """
+    return bool(students) and all(x.is_demo for x in students)
 
 
 def class_report(clas) -> dict:

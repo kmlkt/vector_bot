@@ -29,10 +29,12 @@ OUT_DIR = "./pilot"
 
 def _students(database: sqlite3.Connection) -> list[sqlite3.Row]:
     database.row_factory = sqlite3.Row
+    # is_demo отсекает аккаунты /demo и seed.py: у них сгенерированная история,
+    # и в цифрах пилота им не место
     return database.execute(
         "SELECT u.id, u.grade, u.number_in_class, c.code AS class_code "
         "FROM users u LEFT JOIN classes c ON c.id = u.class_id "
-        "WHERE u.role = 'student' ORDER BY u.id"
+        "WHERE u.role = 'student' AND u.is_demo = 0 ORDER BY u.id"
     ).fetchall()
 
 
