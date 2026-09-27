@@ -232,11 +232,16 @@ select {
 
 .note {
     margin-top: 12px;
+    padding: 8px 12px;
+
+    border: 1px solid #e7d7bd;
+    border-radius: 8px;
+    background: #fdf6ec;
 
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.45;
 
-    color: #888;
+    color: #7a5a22;
 }
 
 /* --------------------
