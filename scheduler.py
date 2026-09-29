@@ -17,9 +17,19 @@ def run_scheduler(database: sqlite3.Connection, send_tasks: Callable[[User], Awa
     async def send_tasks_everybody():
         users = User.all_idle_students(database)
         logging.info("Отправляем задачи юзерам " + ",".join(str(x.id) for x in users))
+        sent = failed = 0
         for user in users:
-            if not user.task_limit_reached:
+            if user.task_limit_reached:
+                continue
+            try:
                 await send_tasks(user)
+                sent += 1
+            except Exception:
+                # один недоступный получатель не должен оставить без рассылки всех
+                # остальных: раньше цикл падал на первом же и дальше не шел
+                failed += 1
+                logging.exception("Не удалось отправить задание юзеру %s", user.id)
+        logging.info("Рассылка: отправлено %s, не доставлено %s", sent, failed)
 
     scheduler = AsyncIOScheduler()
 

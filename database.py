@@ -111,10 +111,15 @@ class User(BaseModel):
 
     @staticmethod
     def all_idle_students(database: sqlite3.Connection) -> "list[User]":
+        """Кому уходит ежедневная рассылка.
+
+        Демонстрационные аккаунты исключены: у seed-учеников идентификатор
+        придуманный, в MAX такого пользователя нет, и отправка ему падает.
+        """
         return [
             User(database, id)
             for (id,) in database.execute(
-                "SELECT id FROM users WHERE role='student' AND state='idle'"
+                "SELECT id FROM users WHERE role='student' AND state='idle' AND is_demo=0"
             )
         ]
 
