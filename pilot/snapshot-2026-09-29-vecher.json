@@ -1,0 +1,739 @@
+{
+  "taken_at": "2026-09-29T21:57:27",
+  "db": "/private/tmp/claude-501/-Users-cherny-shevv/c32147b4-729e-4aef-b6f7-0187da7acade/scratchpad/pilot/snap4.db",
+  "students": [
+    {
+      "id": 43,
+      "grade": null,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 0,
+      "days_answered": 0,
+      "first_day": null,
+      "last_day": null,
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.0
+    },
+    {
+      "id": 44,
+      "grade": 8,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 1,
+      "days_answered": 1,
+      "first_day": "2026-09-26",
+      "last_day": "2026-09-26",
+      "scores": {
+        "H": 0.0,
+        "T": 0.3,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3
+    },
+    {
+      "id": 45,
+      "grade": null,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 6,
+      "days_answered": 2,
+      "first_day": "2026-09-27",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.3333,
+        "T": 0.25,
+        "S": 0.5,
+        "I": 0.5,
+        "N": 0.0
+      },
+      "leading": [
+        "S",
+        "I"
+      ],
+      "is_ready": true,
+      "is_distinct": false,
+      "distinct_gap": 0.2292
+    },
+    {
+      "id": 46,
+      "grade": 9,
+      "class_code": "9R76",
+      "number_in_class": 9,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-27",
+      "last_day": "2026-09-27",
+      "scores": {
+        "H": 0.3333,
+        "T": 1.0,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.9167
+    },
+    {
+      "id": 47,
+      "grade": 8,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 6,
+      "days_answered": 2,
+      "first_day": "2026-09-27",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.5778,
+        "T": 0.25,
+        "S": 0.5,
+        "I": 0.2,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "S"
+      ],
+      "is_ready": true,
+      "is_distinct": false,
+      "distinct_gap": 0.3403
+    },
+    {
+      "id": 48,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 1,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.5
+      },
+      "leading": [
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.5
+    },
+    {
+      "id": 49,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.3333,
+        "S": 0.5,
+        "I": 0.0,
+        "N": 0.3
+      },
+      "leading": [
+        "S"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3417
+    },
+    {
+      "id": 50,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 2,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 1.0,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 1.0,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "I"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.75
+    },
+    {
+      "id": 51,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.3333,
+        "I": 0.5,
+        "N": 0.3333
+      },
+      "leading": [
+        "I"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3334
+    },
+    {
+      "id": 52,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 6,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.75,
+        "T": 0.3333,
+        "S": 0.0,
+        "I": 0.25,
+        "N": 0.25
+      },
+      "leading": [
+        "H"
+      ],
+      "is_ready": true,
+      "is_distinct": false,
+      "distinct_gap": 0.5417
+    },
+    {
+      "id": 53,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 2,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.6,
+        "I": 0.0,
+        "N": 1.0
+      },
+      "leading": [
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.85
+    },
+    {
+      "id": 54,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.3333,
+        "T": 0.3333,
+        "S": 0.0,
+        "I": 0.5,
+        "N": 0.0
+      },
+      "leading": [
+        "I"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3334
+    },
+    {
+      "id": 55,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.2667,
+        "T": 0.0,
+        "S": 0.2,
+        "I": 0.5,
+        "N": 0.0
+      },
+      "leading": [
+        "I"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3833
+    },
+    {
+      "id": 56,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.3,
+        "S": 0.2,
+        "I": 0.0,
+        "N": 0.3
+      },
+      "leading": [
+        "T",
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.175
+    },
+    {
+      "id": 57,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.3333,
+        "T": 0.5,
+        "S": 0.3333,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3334
+    },
+    {
+      "id": 58,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 6,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.5778,
+        "T": 0.25,
+        "S": 0.5,
+        "I": 0.2,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "S"
+      ],
+      "is_ready": true,
+      "is_distinct": false,
+      "distinct_gap": 0.3403
+    },
+    {
+      "id": 59,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.3333,
+        "S": 0.5,
+        "I": 0.0,
+        "N": 0.5
+      },
+      "leading": [
+        "S",
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.2917
+    },
+    {
+      "id": 60,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.3333,
+        "I": 0.5,
+        "N": 0.3333
+      },
+      "leading": [
+        "I"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3334
+    },
+    {
+      "id": 61,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.3,
+        "T": 0.3,
+        "S": 0.0,
+        "I": 0.3,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.15
+    },
+    {
+      "id": 62,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 1,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.5,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "S"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.5
+    },
+    {
+      "id": 63,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 6,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.5,
+        "T": 0.6667,
+        "S": 0.0,
+        "I": 0.5,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": true,
+      "is_distinct": false,
+      "distinct_gap": 0.4167
+    },
+    {
+      "id": 64,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.3333,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.5,
+        "N": 0.5
+      },
+      "leading": [
+        "I",
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.2917
+    },
+    {
+      "id": 65,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 4,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 0.5333,
+        "T": 0.5,
+        "S": 0.0,
+        "I": 0.2,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.3583
+    },
+    {
+      "id": 66,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 1.0,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.5,
+        "N": 0.0
+      },
+      "leading": [
+        "H"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.875
+    },
+    {
+      "id": 67,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 2,
+      "days_answered": 2,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-29",
+      "scores": {
+        "H": 1.0,
+        "T": 1.0,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.75
+    },
+    {
+      "id": 68,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.5,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.3333,
+        "N": 0.5
+      },
+      "leading": [
+        "H",
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.2917
+    },
+    {
+      "id": 69,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 1,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.0,
+        "I": 0.5,
+        "N": 0.0
+      },
+      "leading": [
+        "I"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.5
+    },
+    {
+      "id": 70,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 1,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.0,
+        "S": 0.5,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "S"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.5
+    },
+    {
+      "id": 71,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.5,
+        "T": 0.5,
+        "S": 0.5,
+        "I": 0.0,
+        "N": 0.0
+      },
+      "leading": [
+        "H",
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.25
+    },
+    {
+      "id": 72,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 2,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.0,
+        "T": 0.5,
+        "S": 0.0,
+        "I": 0.3,
+        "N": 0.0
+      },
+      "leading": [
+        "T"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.425
+    },
+    {
+      "id": 73,
+      "grade": 7,
+      "class_code": null,
+      "number_in_class": null,
+      "solved": 3,
+      "days_answered": 1,
+      "first_day": "2026-09-28",
+      "last_day": "2026-09-28",
+      "scores": {
+        "H": 0.3333,
+        "T": 0.5,
+        "S": 0.0,
+        "I": 0.0,
+        "N": 0.5
+      },
+      "leading": [
+        "T",
+        "N"
+      ],
+      "is_ready": false,
+      "is_distinct": false,
+      "distinct_gap": 0.2917
+    }
+  ],
+  "summary": {
+    "дошли до бота": 31,
+    "сделали хотя бы одно задание": 30,
+    "вернулись на второй день": 9,
+    "среднее заданий на начавшего": 3.1,
+    "профиль показывается (5+)": 5,
+    "10+ заданий": 0,
+    "выраженный профиль среди 10+": 0
+  }
+}
